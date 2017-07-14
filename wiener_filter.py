@@ -104,9 +104,9 @@ def wiener_filter(t, h, signal='gaussian', noise='flat', return_PSDs=False,
     # compute the PSD of the input
     N = len(t)
     Df = np.diff(t)[0]
-    f = np.fft.rfftfreq(N, 1)
+    f = np.fft.fftfreq(N, Df)
 
-    H = np.fft.rfft(h)
+    H = np.fft.fft(h)
     PSD = abs(H) ** 2
 
     # fit signal/noise params if necessary
@@ -131,10 +131,17 @@ def wiener_filter(t, h, signal='gaussian', noise='flat', return_PSDs=False,
 
     # use [1:] here to remove the zero-frequency term: we don't want to
     # fit to this for data with an offset.
-    min_func = lambda v: np.sum((PSD[1:] - signal(f[1:], v[0], v[1])
-                                 - noise(f[1:], v[2])) ** 2)
+    N_half = N / 2
+    min_func = lambda v: np.sum((PSD[1:N_half] -
+                                 signal(f[1:N_half], v[0], v[1]) -
+                                 noise(f[1:N_half], v[2])) ** 2)
     v0 = tuple(signal_params) + tuple(noise_params)
-    v = optimize.fmin(min_func, v0)
+    opt_out = optimize.fmin(min_func, v0, disp=0, full_output=1)
+
+    v = opt_out[0]
+    warns = opt_out[-1]
+    if warns != 0:
+        print("Warning from optimize.fmin: {}".format(warns))
 
     P_S = signal(f, v[0], v[1] * width_factor)
     P_N = noise(f, v[-1])
@@ -142,21 +149,21 @@ def wiener_filter(t, h, signal='gaussian', noise='flat', return_PSDs=False,
     Phi_N = P_N / (P_S + P_N)
     Phi[0] = 1  # correct for DC offset
 
-    print(v0)
-    print(v)
+    # print(v0)
+    # print(v)
 
     # Use Phi to filter and smooth the values
-    h_smooth = np.fft.irfft(Phi * H)
-    h_noise = np.fft.irfft(Phi_N * H)
+    h_smooth = np.fft.ifft(Phi * H)
+    h_noise = np.fft.ifft(Phi_N * H)
 
     if not np.iscomplexobj(h):
         h_smooth = h_smooth.real
         h_noise = h_noise.real
 
     if return_PSDs:
-        return h_smooth, f, PSD, P_S, P_N, Phi, h_noise, Phi_N
+        return h_smooth, h_noise, f, PSD, P_S, P_N, Phi, Phi_N
     else:
-        return h_smooth
+        return h_smooth, h_noise
 
 
 def corr_noise_model(f, N0, f0, a):
