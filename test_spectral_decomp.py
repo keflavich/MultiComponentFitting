@@ -2,13 +2,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.stats as astats
-import scipy.signal as signal
 
 from adaptive_savgol import adaptive_savgol_filter
 from wiener_filter import wiener_filter
 from myAG_decomposer import gaussian, func, vals_vec_from_lmfit, errs_vec_from_lmfit, paramvec_to_lmfit
 from lmfit import minimize as lmfit_minimize
 from lmfit import Parameters
+
+from extrema_find import extrema_find
 
 np.random.seed(3456734978)
 
@@ -31,42 +32,8 @@ ndata = yn3
 
 wien_filt = wiener_filter(x, ndata, width_factor=3, return_PSDs=True)
 
-
-def extrema_find(y, mode='peak'):
-    '''
-    Adapted from: https://stackoverflow.com/questions/24656367/find-peaks-location-in-a-spectrum-numpy
-    '''
-
-    if mode not in ['peak', 'dip', 'all']:
-        raise TypeError("mode must be 'peak', 'dip' or 'all'.")
-
-    kernel = [1, 0, -1]
-    dY = signal.convolve(y, kernel, 'valid')
-
-    # Checking for sign-flipping
-    S = np.sign(dY)
-    ddS = signal.convolve(S, kernel, 'valid')
-
-    if mode == 'peak' or mode == 'all':
-        candidates = np.where(dY > 0)[0] + (len(kernel) - 1)
-
-        peaks = \
-            sorted(set(candidates).intersection(np.where(ddS == -2)[0] + 1))
-
-    if mode == 'dip' or mode == 'all':
-        candidates = np.where(dY < 0)[0] + (len(kernel) - 1)
-        dips = sorted(set(candidates).intersection(np.where(ddS == 2)[0] + 1))
-
-    if mode == 'all':
-        return peaks.extend(dips)
-    elif mode == 'peak':
-        return peaks
-    else:
-        return dips
-
-
 # Check the noise level in the noise filtered spectrum
-noise_std = astats.mad_std(wien_filt[-2])
+noise_std = astats.mad_std(wien_filt[1])
 
 # We want to find peaks in the filtered spectrum. Start fitting with the one
 # defined at the max and add components until they don't improve the fit
