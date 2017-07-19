@@ -108,11 +108,12 @@ modelcube += white_noise
 
 cube_header = fits.Header()
 cube_header.update(get_dummy_header(update_header_dict={
-    "CTYPE": "VLSR",
+    "CTYPE3": "VRAD",
     "CDELT3": np.diff(xarr)[0],
     "CUNIT3": "km/s",
     "CRVAL3": toy.vlsr.median(),
     "CRPIX3": xarr.size // 2,
+    "RSTFRQ": 2.3e9,
     "RMSLVL": noise_std}))
 cube_hdu = fits.PrimaryHDU(data=modelcube, header=cube_header)
 cube_hdu.writeto("data/gauss_cube_x2.fits", overwrite=True, checksum=True)
