@@ -31,15 +31,17 @@ and extra dimensionality added.
 import numpy as np
 from sklearn import utils
 
-if __name__ != "__main__":
-    from .math_utils import planar_tilt, periodic_wiggle
-else: # forgive my non-pythonic blasphemy, but I like to %run my scripts
-    from math_utils import planar_tilt, periodic_wiggle
+try:
+    #from .math_utils import planar_tilt, periodic_wiggle,
+    from . import math_utils
+except SystemError:
+    # forgive my non-pythonic blasphemy, but I like to %run my scripts
+    import math_utils
+    #from math_utils import planar_tilt, periodic_wiggle, intensity_from_density
 
-
-def two_circles(n_samples=100, i_range=[0, np.pi], i_tilt=[0, 0, 0],
-                i_wiggle=[0, 0], j_range=[0, np.pi], j_tilt=[0, 0, 0],
-                j_wiggle=[0, 0], **kwargs):
+def two_circles(n_samples=100, i_xy0=(0, 0), j_xy0=(1, .5), i_range=[0, np.pi],
+                i_tilt=[0, 0, 0], i_wiggle=[0, 0], j_range=[0, np.pi],
+                j_tilt=[0, 0, 0], j_wiggle=[0, 0], **kwargs):
     """
     Generates a 3D cloud of points sampled from two overlaping circles.
 
@@ -58,6 +60,8 @@ def two_circles(n_samples=100, i_range=[0, np.pi], i_tilt=[0, 0, 0],
     noise : double or None (default=None)
         Standard deviation of Gaussian noise added to the data.
 
+    TODO: this doesn"t belong here, time to move out
+
     Returns
     -------
     D : array of shape [n_samples, 3]
@@ -71,22 +75,34 @@ def two_circles(n_samples=100, i_range=[0, np.pi], i_tilt=[0, 0, 0],
     n_samples_j = n_samples - n_samples_i + 20
 
     # generating the first circle
-    i_circ_x, i_circ_y = make_circle(n_samples_i, (0, 0.), phase_range=i_range)
-    i_circ_z = planar_tilt(i_circ_x, i_circ_y, *i_tilt)
-    i_circ_z += periodic_wiggle(i_circ_x, i_circ_y, *i_wiggle)
-    i_data = [i_circ_x, i_circ_y, i_circ_z]
+    i_circ_x, i_circ_y = make_circle(n_samples_i, i_xy0,
+            phase_range=i_range, **kwargs)
+    # vlsr and intensity values for the first circe
+    i_velocity = math_utils.planar_tilt(i_circ_x, i_circ_y, *i_tilt)
+    i_velocity += math_utils.periodic_wiggle(i_circ_x, i_circ_y, *i_wiggle)
+    i_intensity, _ = math_utils.intensity_from_density(i_circ_x, i_circ_y)
 
     # generating the second circle
-    j_circ_x, j_circ_y = make_circle(n_samples_j, (1, .5), phase_range=j_range)
-    j_circ_z = planar_tilt(j_circ_x, j_circ_y, *j_tilt)
-    j_circ_z += periodic_wiggle(j_circ_x, j_circ_y, *j_wiggle)
-    j_data = [j_circ_x, j_circ_y, j_circ_z]
+    j_circ_x, j_circ_y = make_circle(n_samples_j, j_xy0,
+            phase_range=j_range, **kwargs)
+    # vlsr and intensity values for the second circe
+    j_velocity = math_utils.planar_tilt(j_circ_x, j_circ_y, *j_tilt)
+    j_velocity += math_utils.periodic_wiggle(j_circ_x, j_circ_y, *j_wiggle)
+    j_intensity, _ = math_utils.intensity_from_density(j_circ_x, j_circ_y)
+
+    #xspace = np.concatenate([i_circ_x, j_circ_x])
+    #yspace = np.concatenate([i_circ_y, j_circ_y])
+
+    # pos_x, pos_y, velocity, intensity, line width
+    i_data = [i_circ_x, i_circ_y, i_velocity, i_intensity]
+    j_data = [j_circ_x, j_circ_y, j_velocity, j_intensity]
 
     D, l = assemble_components(i_data, j_data, **kwargs)
 
     return D, l
 
-def make_circle(n_samples=100, origin=(0.0, 0.0), r=1, phase_range=(0, np.pi)):
+def make_circle(n_samples=100, origin=(0.0, 0.0), r=1, phase_range=(0, np.pi),
+                random_state=None, noise=None, **kwargs):
     """
     Generates a 3D cloud of points a circle on the xy-grid.
 
@@ -105,6 +121,9 @@ def make_circle(n_samples=100, origin=(0.0, 0.0), r=1, phase_range=(0, np.pi)):
 
     phase_range : phase length of a circle segment in radians
 
+    noise : double or None (default=None)
+        Standard deviation of Gaussian noise added to the data.
+
     Returns
     -------
     XY : array of shape [n_samples, 2]
@@ -113,6 +132,12 @@ def make_circle(n_samples=100, origin=(0.0, 0.0), r=1, phase_range=(0, np.pi)):
     x0, y0 = origin
     circ_x = x0 + r * np.cos(np.linspace(*phase_range, num=n_samples))
     circ_y = y0 + r * np.sin(np.linspace(*phase_range, num=n_samples))
+
+    generator = utils.check_random_state(random_state)
+
+    if noise is not None:
+        circ_x += generator.normal(scale=noise, size=circ_x.shape)
+        circ_y += generator.normal(scale=noise, size=circ_x.shape)
 
     return np.array([circ_x, circ_y])
 
@@ -130,9 +155,6 @@ def assemble_components(*components, **kwargs):
     shuffle : bool, optional (default=True)
         Whether to shuffle the samples.
 
-    noise : double or None (default=None)
-        Standard deviation of Gaussian noise added to the data.
-
     Returns
     -------
     D : array of shape [n_samples, 3]
@@ -143,9 +165,8 @@ def assemble_components(*components, **kwargs):
 
     """
 
-    shuffle = kwargs.pop('shuffle', True)
-    noise = kwargs.pop('noise', None)
-    random_state = kwargs.pop('random_state', None)
+    shuffle = kwargs.pop("shuffle", True)
+    random_state = kwargs.pop("random_state", None)
 
     generator = utils.check_random_state(random_state)
 
@@ -160,22 +181,4 @@ def assemble_components(*components, **kwargs):
     if shuffle:
         D, l = utils.shuffle(D, l, random_state=generator)
 
-    if noise is not None:
-        D += generator.normal(scale=noise, size=D.shape)
-
     return D, l
-
-if __name__ == "__main__":
-    from mpl_toolkits.mplot3d import Axes3D
-    import matplotlib.pyplot as plt
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    D, l = two_circles(1000, i_range=[-np.pi/2, np.pi/2], i_tilt=[1, .2, -.5],
-                       j_tilt=[0.5, -.4, .3], noise=0.1)
-
-    ax.scatter(*D[l==0, :].T)
-    ax.scatter(*D[l==1, :].T)
-
-    plt.show()
