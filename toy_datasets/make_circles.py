@@ -1,5 +1,8 @@
 """
 Functions to generate toy datasets for the multiple component hacking week.
+
+Adapted from `sklearn.datasets.make_moons`, with generalized circle parameters
+and extra dimensionality added.
 """
 
 # The preliminary philosophy for this module is as follows.
@@ -33,22 +36,12 @@ if __name__ != "__main__":
 else: # forgive my non-pythonic blasphemy, but I like to %run my scripts
     from math_utils import planar_tilt, periodic_wiggle
 
-# TODO: SCRAP FOR PARTS!!! a much better approach is the have a similar
-#       function for just one velocity component that generates a scatter
-#       in ra/dec. Then all the subsequent tinkering can be done independently
-#       of the initial number of components / dimensions
-def two_circles(n_samples=100, shuffle=True, noise=None, random_state=None,
-                i_range=[0, np.pi], i_tilt=[0, 0, 0], i_wiggle=[0, 0],
-                j_range=[0, np.pi], j_tilt=[0, 0, 0], j_wiggle=[0, 0]):
+
+def two_circles(n_samples=100, i_range=[0, np.pi], i_tilt=[0, 0, 0],
+                i_wiggle=[0, 0], j_range=[0, np.pi], j_tilt=[0, 0, 0],
+                j_wiggle=[0, 0], **kwargs):
     """
     Generates a 3D cloud of points sampled from two overlaping circles.
-
-    Taken from `sklearn.datasets.make_moons` and sprinkled
-    with extra dimensionality and additional parametrizations.
-
-    ++ TODO #0: pp --> ppv
-    ++ TODO #1: make the components overlap in velocity.
-    -- TODO #2: add intensity / line widths structures? Nah do it elsewhere...
 
     Parameters
     ----------
@@ -75,32 +68,94 @@ def two_circles(n_samples=100, shuffle=True, noise=None, random_state=None,
     """
 
     n_samples_i = n_samples // 2
-    n_samples_j = n_samples - n_samples_i
+    n_samples_j = n_samples - n_samples_i + 20
+
+    # generating the first circle
+    i_circ_x, i_circ_y = make_circle(n_samples_i, (0, 0.), phase_range=i_range)
+    i_circ_z = planar_tilt(i_circ_x, i_circ_y, *i_tilt)
+    i_circ_z += periodic_wiggle(i_circ_x, i_circ_y, *i_wiggle)
+    i_data = [i_circ_x, i_circ_y, i_circ_z]
+
+    # generating the second circle
+    j_circ_x, j_circ_y = make_circle(n_samples_j, (1, .5), phase_range=j_range)
+    j_circ_z = planar_tilt(j_circ_x, j_circ_y, *j_tilt)
+    j_circ_z += periodic_wiggle(j_circ_x, j_circ_y, *j_wiggle)
+    j_data = [j_circ_x, j_circ_y, j_circ_z]
+
+    D, l = assemble_components(i_data, j_data, **kwargs)
+
+    return D, l
+
+def make_circle(n_samples=100, origin=(0.0, 0.0), r=1, phase_range=(0, np.pi)):
+    """
+    Generates a 3D cloud of points a circle on the xy-grid.
+
+    Adapted from `sklearn.datasets.make_moons`.
+
+    Parameters
+    ----------
+    n_samples : int, optional (default=100)
+        The total number of points generated.
+
+    origin : sequence of two floats
+        Sets the center of the circle
+
+    radius : float
+        Radius of the circle
+
+    phase_range : phase length of a circle segment in radians
+
+    Returns
+    -------
+    XY : array of shape [n_samples, 2]
+         The generated samples.
+    """
+    x0, y0 = origin
+    circ_x = x0 + r * np.cos(np.linspace(*phase_range, num=n_samples))
+    circ_y = y0 + r * np.sin(np.linspace(*phase_range, num=n_samples))
+
+    return np.array([circ_x, circ_y])
+
+# whaaat since when does it break for python 2?
+#def assemble_circles(*components, shuffle=True, noise=None, random_state=None):
+def assemble_components(*components, **kwargs):
+    """
+    Assembly of multiple components.
+
+    Parameters
+    ----------
+
+    components : an iterable of arrays of [n_dimensions, n_points] shape
+
+    shuffle : bool, optional (default=True)
+        Whether to shuffle the samples.
+
+    noise : double or None (default=None)
+        Standard deviation of Gaussian noise added to the data.
+
+    Returns
+    -------
+    D : array of shape [n_samples, 3]
+        The generated samples.
+
+    l : array of shape [n_samples]
+        The integer labels (0 or 1) for class membership of each sample.
+
+    """
+
+    shuffle = kwargs.pop('shuffle', True)
+    noise = kwargs.pop('noise', None)
+    random_state = kwargs.pop('random_state', None)
 
     generator = utils.check_random_state(random_state)
 
-    #if i_wiggle != [0, 0] or j_wiggle != [0, 0]:
-    #    raise NotImplementedError("WIP, sorry!")
-
-    # generating the first circle
-    i_circ_x = np.cos(np.linspace(*i_range, num=n_samples_i))
-    i_circ_y = np.sin(np.linspace(*i_range, num=n_samples_i))
-    i_circ_z = planar_tilt(i_circ_x, i_circ_y, *i_tilt)
-    i_circ_z += periodic_wiggle(i_circ_x, i_circ_y, *i_wiggle)
-
-    # generating the second circle
-    j_circ_x = 1 - np.cos(np.linspace(*j_range, num=n_samples_j))
-    j_circ_y = 1 - np.sin(np.linspace(*j_range, num=n_samples_j)) - .5
-    j_circ_z = planar_tilt(j_circ_x, j_circ_y, *j_tilt)
-    j_circ_z += periodic_wiggle(j_circ_x, j_circ_y, *j_wiggle)
-
     # stacking the 3D point cloud in a single array
-    D = np.vstack((np.append(i_circ_x, j_circ_x),
-                   np.append(i_circ_y, j_circ_y),
-                   np.append(i_circ_z, j_circ_z))).T
+    D = np.concatenate(components, axis=1).T
+
     # storing the true allegiance of the datapoints
-    l = np.hstack([np.zeros(n_samples_j, dtype=np.intp),
-                   np.ones(n_samples_i, dtype=np.intp)])
+    n_samples = [len(c[0]) for c in components]
+    l = np.concatenate(
+        [np.zeros(n, dtype=int) + i for i, n in enumerate(n_samples)])
 
     if shuffle:
         D, l = utils.shuffle(D, l, random_state=generator)
@@ -114,7 +169,7 @@ if __name__ == "__main__":
     from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.pyplot as plt
 
-    fig = plt.figure('z-axis errors')
+    fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
     D, l = two_circles(1000, i_range=[-np.pi/2, np.pi/2], i_tilt=[1, .2, -.5],
