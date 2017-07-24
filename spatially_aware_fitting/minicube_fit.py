@@ -2,7 +2,7 @@ import numpy as np
 import lmfit
 
 def plane(xx, yy, value, dx, dy, xcen=1, ycen=1):
-    z = ((xx-xcen) * dx + (yy-ycen) * dy) * value + value
+    z = ((xx-xcen) * dx + (yy-ycen) * dy) + value
     return z
 
 def gaussian(xax, amp, cen, wid):
