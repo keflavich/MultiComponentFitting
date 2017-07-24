@@ -26,7 +26,7 @@ def minicube_model(xax,
     centers = plane(xx, yy, center, centerdx, centerdy, xcen=npix//2, ycen=npix//2)
     sigmas = plane(xx, yy, sigma, sigmadx, sigmady, xcen=npix//2, ycen=npix//2)
 
-    model = gaussian(xax[:,None,None], amps, centers, sigmas)
+    model = func(xax[:,None,None], amps, centers, sigmas)
 
     return model
 
