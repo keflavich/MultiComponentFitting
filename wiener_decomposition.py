@@ -122,7 +122,7 @@ def decompose(x, y, plot_fit=True, diagnostic_plots=False, min_peak=0.0,
             params_fit_prev = params_fit
             ncomps_fit_prev = ncomps_fit
             continue
-        elif result2.aic > aics[i - 1]:
+        elif result2.aic > aics[i - 1] or result2.bic > bics[i - 1]:
             aics.append(result2.aic)
             bics.append(result2.bic)
             break
@@ -140,6 +140,7 @@ def decompose(x, y, plot_fit=True, diagnostic_plots=False, min_peak=0.0,
         import matplotlib.pyplot as plt
         plt.plot(x, y, alpha=0.7)
         plt.plot(x, y_lp)
+        plt.axhline(noise_std)
         for peak in peaks:
             plt.axvline(peak, color='g', linestyle='-.', alpha=0.5)
         for i in range(1, ncomps_fit_prev + 1):
