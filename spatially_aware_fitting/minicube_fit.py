@@ -36,7 +36,7 @@ def minicube_model_generator(npix=3, func=gaussian,):
                            sigma, sigmadx, sigmady,):
         return minicube_model(xax, amp, ampdx, ampdy, center, centerdx,
                               centerdy, sigma, sigmadx, sigmady, npix=npix,
-                              func=func).ravel()
+                              func=func)
 
     return minicube_modelfunc
 
@@ -54,7 +54,7 @@ def unconstrained_fitter(minicube, xax, input_parameters):
     for par in params:
         params[par].value = input_parameters[par]
 
-    result = model.fit(minicube.ravel(), xax=xax,
+    result = model.fit(minicube, xax=xax,
                        params=params)
 
     return result
