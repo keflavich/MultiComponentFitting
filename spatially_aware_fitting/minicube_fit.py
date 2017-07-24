@@ -40,13 +40,13 @@ def minicube_model_generator(npix=3, func=gaussian,):
 
     return minicube_modelfunc
 
-                                     
-def unconstrained_fitter(minicube, xax, input_parameters):
+
+def unconstrained_fitter(minicube, xax, input_parameters, **model_kwargs):
     """
     input_parameters should be a dict
     """
 
-    model = lmfit.Model(minicube_model_generator(),
+    model = lmfit.Model(minicube_model_generator(**model_kwargs),
                         independent_vars=['xax'])
 
     params = model.make_params()
