@@ -1,5 +1,6 @@
 
 import pymc3 as pm
+import theano as tt
 import numpy as np
 from minicube_fit import gaussian, plane
 
@@ -35,6 +36,7 @@ def minicube_pymc_fit(xax, data, guesses, **fit_kwargs):
         # Create a bounded normal
         PositiveNormal = pm.Bound(pm.Normal, lower=0)
         sigma = PositiveNormal('sigma', mu=guesses['sigma'], sd=5)
+        basic_model.sigma_lowerbound__ = pm.model.ObservedRV(tt.Variable(0))
         sigmadx = pm.Normal('sigmadx', mu=guesses['sigmadx'], sd=1)
         sigmady = pm.Normal('sigmady', mu=guesses['sigmady'], sd=1)
 
@@ -64,7 +66,7 @@ def minicube_pymc_fit(xax, data, guesses, **fit_kwargs):
     medians = parameter_medians(trace)
     stddevs = parameter_stddevs(trace)
 
-    return medians, stddevs, trace
+    return medians, stddevs, trace, basic_model
 
 
 def parameter_medians(trace):
