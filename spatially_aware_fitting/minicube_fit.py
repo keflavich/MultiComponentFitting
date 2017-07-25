@@ -15,11 +15,13 @@ def minicube_model(xax,
                    npix=3,
                    func=gaussian,
                    force_positive=True,
+                   check_isfinite=True
                   ):
 
-    for par in (amp, ampdx, ampdy, center, centerdx, centerdy,
-                sigma, sigmadx, sigmady):
-        assert np.isfinite(par)
+    if check_isfinite:
+        for par in (amp, ampdx, ampdy, center, centerdx, centerdy,
+                    sigma, sigmadx, sigmady):
+            assert np.isfinite(par)
 
     yy,xx = np.indices([npix, npix], dtype='float')
 

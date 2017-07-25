@@ -2,7 +2,7 @@
 import pymc3 as pm
 import theano as tt
 import numpy as np
-from minicube_fit import gaussian, plane
+from minicube_fit import minicube_model
 
 
 def minicube_pymc_fit(xax, data, guesses, **fit_kwargs):
@@ -40,23 +40,13 @@ def minicube_pymc_fit(xax, data, guesses, **fit_kwargs):
         sigmadx = pm.Normal('sigmadx', mu=guesses['sigmadx'], sd=1)
         sigmady = pm.Normal('sigmady', mu=guesses['sigmady'], sd=1)
 
-        npix = data.shape[1]
-
-        yy, xx = np.indices([npix, npix], dtype='float')
-
-        amps = plane(xx, yy, amp, ampdx, ampdy, xcen=npix // 2, ycen=npix // 2)
-        centers = plane(xx, yy, center, centerdx, centerdy,
-                        xcen=npix // 2, ycen=npix // 2)
-        sigmas = plane(xx, yy, sigma, sigmadx, sigmady,
-                       xcen=npix // 2, ycen=npix // 2)
-
-        model = on * gaussian(xax[:, None, None], amps, centers, sigmas)
-
-        # mu = minicube_model(xax,
-        #                     amp, ampdx, ampdy,
-        #                     center, centerdx, centerdy,
-        #                     sigma, sigmadx, sigmady,
-        #                     npix=data.shape[1])
+        model = on * minicube_model(xax,
+                                    amp, ampdx, ampdy,
+                                    center, centerdx, centerdy,
+                                    sigma, sigmadx, sigmady,
+                                    npix=data.shape[1],
+                                    force_positive=False,
+                                    check_isfinite=False)
 
         sigma_n = pm.InverseGamma('sigma_n', alpha=1, beta=1)
         Y_obs = pm.Normal('Y_obs', mu=model, sd=sigma_n, observed=data)
