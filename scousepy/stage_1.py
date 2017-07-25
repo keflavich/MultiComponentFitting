@@ -34,7 +34,6 @@ def define_coverage(cube, momzero, rsaa):
     coverage = np.full([len(cov_y)*len(cov_x),2], np.nan)
     spec = np.full([250, len(cov_y), len(cov_x)], np.nan)
 
-    count = 0.0
     for cx,cy in itertools.product(cov_x, cov_y):
 
         idx = int((cov_x[0]-cx)/rsaa)
@@ -50,8 +49,9 @@ def define_coverage(cube, momzero, rsaa):
             fraction = tot_non_zero / nmask
             if fraction > 0.5:
                 coverage[idy+(idx*len(cov_y)),:] = cx,cy
-                spec[:, idy, idx] = np.nanmean(cube._data[:, int(cy-spacing*2.):int(cy+spacing*2.),
-                                                             int(cx-spacing*2.):int(cx+spacing*2.)],
-                                                             axis=(1, 2))
+                spec[:, idy, idx] = cube[:,
+                                         int(cy-spacing*2.):int(cy+spacing*2.),
+                                         int(cx-spacing*2.):int(cx+spacing*2.)].mean(axis=(1,2))
+
 
     return coverage, spec
