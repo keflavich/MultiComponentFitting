@@ -11,7 +11,7 @@ from minicube_fit import minicube_model, unconstrained_fitter
 from minicube_pymc import minicube_pymc_fit
 
 num_pts = 100
-npix = 9
+npix = 5
 
 model = minicube_model(np.arange(num_pts),
                        0.2, 0.5, -0.1,
@@ -42,7 +42,7 @@ for par in result_mcmc.params:
                                   result_mcmc.params[par].stderr))
 
 # MCMC fit w/ pymc3
-pymc_medians, pymc_stddevs, trace, model = \
+pymc_medians, pymc_stddevs, trace, pymc_model = \
     minicube_pymc_fit(np.arange(num_pts), model_with_noise, guess)
 print("pymc Parameters:")
 for par in pymc_medians:
@@ -59,9 +59,14 @@ fitcube_mcmc = minicube_model(np.arange(num_pts),
                               *[x.value for x in result_mcmc.params.values()],
                               npix=npix)
 
-fitcube_pymc = minicube_model(np.arange(num_pts),
-                              *[pymc_medians[x] for x in pymc_medians if x is not 'on'],
-                              npix=npix)
+fitcube_pymc = minicube_model(np.arange(num_pts), pymc_medians['amp'],
+                              pymc_medians['ampdx'], pymc_medians['ampdy'],
+                              pymc_medians['center'], pymc_medians['centerdx'],
+                              pymc_medians['centerdy'], pymc_medians['sigma'],
+                              pymc_medians['sigmadx'], pymc_medians['sigmady'],
+                              npix=npix, force_positive=False)
+
+fitcube_pymc = pymc_medians['on'] * fitcube_pymc
 
 
 pl.figure(1).clf()
