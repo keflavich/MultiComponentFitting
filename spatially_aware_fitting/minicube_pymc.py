@@ -32,9 +32,9 @@ def minicube_pymc_fit(xax, data, guesses, **fit_kwargs):
         centerdx = pm.Normal('centerdx', mu=guesses['centerdx'], sd=1)
         centerdy = pm.Normal('centerdy', mu=guesses['centerdy'], sd=1)
 
-        sigma = pm.Normal('sigma', mu=guesses['sigma'], sd=5)
-        sigmadx = pm.Normal('sigmadx', mu=guesses['sigmadx'], sd=1)
-        sigmady = pm.Normal('sigmady', mu=guesses['sigmady'], sd=1)
+        sigma = pm.HalfNormal('sigma', mu=guesses['sigma'], sd=5)
+        sigmadx = pm.HalfNormal('sigmadx', mu=guesses['sigmadx'], sd=1)
+        sigmady = pm.HalfNormal('sigmady', mu=guesses['sigmady'], sd=1)
 
         npix = data.shape[1]
 
