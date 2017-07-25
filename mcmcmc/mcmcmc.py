@@ -10,10 +10,10 @@ def BayesianMultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3):
     model = pm.Model()
     if max_ncomp == 1:
         with model:
-            amp1 = pm.HalfNormal('amp1', sd=10)
+            amp1 = pm.Uniform('amp1', lower=0, upper=1.2 * Ydata.max())
             vcen1 = pm.Uniform('vcen1',lower=Xdata.min(),
                                upper=Xdata.max())
-            sigv1 = pm.HalfNormal('sigv1', sd=4)
+            sigv1 = pm.Uniform('sigv1', lower=1e-5, upper=np.ptp(Xdata) / 2.)
             on1 = pm.Bernoulli('on1', p=0.5)
             mu = ((on1 * amp1
                    * np.exp(-(Xdata - vcen1)**2 / (2*sigv1**2))))
@@ -22,16 +22,16 @@ def BayesianMultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3):
 
     if max_ncomp == 2:
         with model:
-            amp1 = pm.HalfNormal('amp1', sd=10)
+            amp1 = pm.Uniform('amp1', lower=0, upper=1.2 * Ydata.max())
             vcen1 = pm.Uniform('vcen1',lower=Xdata.min(),
                                upper=Xdata.max())
-            sigv1 = pm.HalfNormal('sigv1', sd=4)
+            sigv1 = pm.Uniform('sigv1', lower=1e-5, upper=np.ptp(Xdata) / 2.)
             on1 = pm.Bernoulli('on1', p=0.5)
-            
-            amp2 = pm.HalfNormal('amp2', sd=10)
+
+            amp2 = pm.Uniform('amp2', lower=0, upper=1.2 * Ydata.max())
             vcen2 = pm.Uniform('vcen2',lower=Xdata.min(),
                                upper=Xdata.max())
-            sigv2 = pm.HalfNormal('sigv2', sd=4)
+            sigv2 = pm.Uniform('sigv2', lower=1e-5, upper=np.ptp(Xdata) / 2.)
             on2 = pm.Bernoulli('on2', p=0.5)
 
             mu = ((on1 * amp1
@@ -41,26 +41,26 @@ def BayesianMultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3):
             sigma = pm.InverseGamma('sigma', alpha=1, beta=Ydata.std(), observed=y_error)
             Y_obs = pm.Normal('Y_obs', mu=mu, sd=sigma, observed=Ydata)
 
-            
+
     if max_ncomp == 3:
         with model:
-            amp1 = pm.HalfNormal('amp1', sd=10)
+            amp1 = pm.Uniform('amp1', lower=0, upper=1.2 * Ydata.max())
             vcen1 = pm.Uniform('vcen1',lower=Xdata.min(),
                                upper=Xdata.max())
-            sigv1 = pm.HalfNormal('sigv1', sd=4)
+            sigv1 = pm.Uniform('sigv1', lower=1e-5, upper=np.ptp(Xdata) / 2.)
             on1 = pm.Bernoulli('on1', p=0.5)
-            
-            amp2 = pm.HalfNormal('amp2', sd=10)
+
+            amp2 = pm.Uniform('amp2', lower=0, upper=1.2 * Ydata.max())
             vcen2 = pm.Uniform('vcen2',lower=Xdata.min(),
                                upper=Xdata.max())
-            sigv2 = pm.HalfNormal('sigv2', sd=4)
+            sigv2 = pm.Uniform('sigv2', lower=1e-5, upper=np.ptp(Xdata) / 2.)
             on2 = pm.Bernoulli('on2', p=0.5)
-            
-            amp3 = pm.HalfNormal('amp3', sd=10)
+
+            amp3 = pm.Uniform('amp3', lower=0, upper=1.2 * Ydata.max())
             vcen3 = pm.Uniform('vcen3',lower=Xdata.min(),
                                upper=Xdata.max())
-            sigv3 = pm.HalfNormal('sigv3', sd=4)
-            on3 = pm.Bernoulli('on3', p=0.2)
+            sigv3 = pm.Uniform('sigv3', lower=1e-5, upper=np.ptp(Xdata) / 2.)
+            on3 = pm.Bernoulli('on3', p=0.5)
 
             mu = ((on1 * amp1
                    * np.exp(-(Xdata - vcen1)**2 / (2*sigv1**2)))
@@ -76,9 +76,9 @@ def BayesianMultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3):
             mustr = 'mu = ('
             for i in np.arange(max_ncomp):
                 ii = i+1
-                exec("amp{0} = pm.HalfNormal('amp{0}', sd=10)".format(ii) )
+                exec("amp{0} = pm.Uniform('amp{0}', lower=0, upper=1.2 * Ydata.max())".format(ii) )
                 exec("vcen{0} = pm.Uniform('vcen{0}', lower=Xdata.min(), upper=Xdata.max())".format(ii))
-                exec("sigv{0} = pm.HalfNormal('sigv{0}', sd=4)".format(ii))
+                exec("sigv{0} = pm.Uniform('sigv{0}', lower=1e-5, upper=np.ptp(Xdata) / 2.)".format(ii))
                 exec("on{0} = pm.Bernoulli('on{0}', p=0.5)".format(ii))
                 if i > 0:
                     mustr += ' + '
