@@ -14,6 +14,7 @@ def minicube_model(xax,
                    sigma, sigmadx, sigmady,
                    npix=3,
                    func=gaussian,
+                   force_positive=True,
                   ):
 
     for par in (amp, ampdx, ampdy, center, centerdx, centerdy,
@@ -27,6 +28,9 @@ def minicube_model(xax,
     sigmas = plane(xx, yy, sigma, sigmadx, sigmady, xcen=npix//2, ycen=npix//2)
 
     model = func(xax[:,None,None], amps, centers, sigmas)
+
+    if force_positive:
+        model[model<0] = 0
 
     return model
 
