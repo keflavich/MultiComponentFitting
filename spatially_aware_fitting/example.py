@@ -13,9 +13,12 @@ num_pts = 100
 npix = 3
 
 model = minicube_model(np.arange(num_pts),
-                       1, 0.5, -0.1,
+                       0.2, 0.5, -0.1,
                        25, 1, -2,
                        10, 0.1, 0.01, npix=npix)
+
+# simulate a "real sky" - no negative emission.
+model[model<0] = 0
 
 model_with_noise = np.random.randn(*model.shape)*0.1 + model
 
@@ -47,9 +50,9 @@ fitcube_mcmc = minicube_model(np.arange(num_pts),
                               *[x.value for x in result_mcmc.params.values()],
                               npix=npix)
 
-pl.figure(1).clf()
 
-fig, axes = pl.subplots(npix, npix, sharex=True, sharey=True)
+pl.figure(1).clf()
+fig, axes = pl.subplots(npix, npix, sharex=True, sharey=True, num=1)
 
 for ii,((yy,xx), ax) in enumerate(zip(np.ndindex((npix,npix)), axes.ravel())):
     ax.plot(model[:,yy,xx], 'k-', alpha=0.25, zorder=-10, linewidth=3,
