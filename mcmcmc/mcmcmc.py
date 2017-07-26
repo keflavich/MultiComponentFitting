@@ -94,6 +94,46 @@ def BayesianMultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3):
 
     return(trace, model)
 
+def BayesMCFit(Xdata, Ydata, y_error=None, max_ncomp=3, **fit_kwargs):
+
+    ncomp = max_ncomp
+    model = pm.Model()
+    param_dict = {}
+
+    with model:
+        on = pm.Bernoulli("on", p=0.5, shape=(ncomp, ))
+        for i in np.arange(ncomp):
+            ii = i + 1
+            param_dict['amp{}'.format(ii)] = \
+                pm.Uniform('amp{}'.format(ii), lower=0,
+                           upper=1.2 * Ydata.max())
+            param_dict['vcen{}'.format(ii)] = \
+                pm.Uniform('vcen{}'.format(ii), lower=Xdata.min(),
+                           upper=Xdata.max())
+            param_dict['sigv{}'.format(ii)] = \
+                pm.Uniform('sigv{}'.format(ii), lower=1e-5,
+                           upper=np.ptp(Xdata) / 2.)
+            if i == 0:
+                mu = theano_gaussian(Xdata,
+                                     on[i],
+                                     param_dict['amp{}'.format(ii)],
+                                     param_dict['vcen{}'.format(ii)],
+                                     param_dict['sigv{}'.format(ii)])
+            else:
+                mu += theano_gaussian(Xdata,
+                                      on[i],
+                                      param_dict['amp{}'.format(ii)],
+                                      param_dict['vcen{}'.format(ii)],
+                                      param_dict['sigv{}'.format(ii)])
+
+        sigma = pm.InverseGamma('sigma', alpha=1, beta=y_error,
+                                observed=y_error)
+        Y_obs = pm.Normal('Y_obs', mu=mu, sd=sigma,
+                          observed=Ydata)
+
+        start = pm.find_MAP()
+        trace = pm.sample(start=start, **fit_kwargs)
+    return trace, model
 
 def theano_gaussian(x, on, amp, vcen, sigv):
     return on * amp * TT.exp(- 0.5 * TT.power((x - vcen) / sigv, 2))
@@ -126,7 +166,7 @@ def MultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3, min_p=0.5,
                                upper=Xdata.max())
                 param_dict['sigv{}'.format(ii)] = \
                     pm.Uniform('sigv{}'.format(ii), lower=1e-5,
-                               upper=np.ptp(Xdata / 2.))
+                               upper=np.ptp(Xdata) / 2.)
                 if i == 0:
                     mu = theano_gaussian(Xdata,
                                          on[i],
@@ -140,11 +180,12 @@ def MultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3, min_p=0.5,
                                           param_dict['vcen{}'.format(ii)],
                                           param_dict['sigv{}'.format(ii)])
 
-            sigma = pm.InverseGamma('sigma', alpha=1, beta=y_error)
-            Y_obs = pm.Normal('Y_obs', mu=mu, sd=sigma, observed=Ydata)
+            sigma = pm.InverseGamma('sigma', alpha=1, beta=y_error,
+                                    observed=y_error)
+            Y_obs = pm.Normal('Y_obs', mu=mu, sd=sigma,
+                              observed=Ydata)
 
             start = pm.find_MAP()
-
             trace = pm.sample(start=start, **fit_kwargs)
 
         # Get the samples for the on parameters

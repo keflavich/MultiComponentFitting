@@ -16,8 +16,11 @@ Ydata = Ydata_orig + sigma * np.random.randn(nPts)
 # trace, model = mcmcmc.BayesianMultiComponentFit(Xdata, Ydata, max_ncomp=4,
 #                                                 y_error=sigma)
 
-trace, model = mcmcmc.MultiComponentFit(Xdata, Ydata, max_ncomp=3,
-                                        y_error=sigma, tune=200, draws=200)
+trace, model = mcmcmc.BayesMCFit(Xdata, Ydata, max_ncomp=3,
+                                 y_error=sigma, tune=200, draws=200)
+
+#trace, model = mcmcmc.MultiComponentFit(Xdata, Ydata, max_ncomp=3,
+#                                        y_error=sigma, tune=200, draws=200)
 Ymodels = mcmcmc.RealizedFit(trace, Xdata, model)
 
 plt.plot(Xdata, Ydata)
