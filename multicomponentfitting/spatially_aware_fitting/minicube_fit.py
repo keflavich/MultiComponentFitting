@@ -109,7 +109,8 @@ def unconstrained_fitter(minicube, xax, input_parameters, **model_kwargs):
     return result
 
 
-def constrained_fitter(minicube, xax, input_parameters, **model_kwargs):
+def constrained_fitter(minicube, xax, input_parameters, par_minima=None,
+                       par_maxima=None, **model_kwargs):
     """
     input_parameters should be a dict
     """
@@ -125,6 +126,16 @@ def constrained_fitter(minicube, xax, input_parameters, **model_kwargs):
             params[par].min = 0
         elif 'sigma' in par and par[5] != 'd':
             params[par].min = 0
+        if par_minima is not None:
+            for mpar in par_minima:
+                if mpar not in params:
+                    raise ValueError("Parameter {0} is not in params".format(mpar))
+                params[mpar].min = par_minima[mpar]
+        if par_maxima is not None:
+            for mpar in par_maxima:
+                if mpar not in params:
+                    raise ValueError("Parameter {0} is not in params".format(mpar))
+                params[mpar].min = par_maxima[mpar]
 
     result = model.fit(minicube, xax=xax,
                        params=params)

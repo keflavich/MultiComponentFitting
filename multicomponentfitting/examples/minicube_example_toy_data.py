@@ -18,7 +18,7 @@ modelcube = make_model_cube(minicube.spectral_axis.value, parcube[:,pixy-npix//2
 # with a terrible guess, it works terribly...
 guess = {'amp0': 0.1, 'ampdx0': 0, 'ampdy0': 0,
          'center0': 0, 'centerdx0': 0, 'centerdy0': 0,
-         'sigma0': 2.5, 'sigmadx0': 0, 'sigmady0': 0,}
+         'sigma0': 1.5, 'sigmadx0': 0, 'sigmady0': 0,}
 
 result = constrained_fitter(minicube.filled_data[:].value, minicube.spectral_axis.value, guess, npix=npix)
 
@@ -34,8 +34,11 @@ fit_plotter(result, minicube.filled_data[:].value,
 # multicomp
 guess2 = guess.copy()
 guess2.update({k.replace('0','1'):v for k,v in guess.items()})
+guess2['center1'] += 5 # make sure they start as different comps
+guess2['center0'] -= 5 # make sure they start as different comps
 result = constrained_fitter(minicube.filled_data[:].value,
                             minicube.spectral_axis.value, guess2, npix=npix,
+                            par_minima={'amp0':0.01, 'amp1':0.01},
                             ncomps=2)
 
 print("LSQ Parameters:")
