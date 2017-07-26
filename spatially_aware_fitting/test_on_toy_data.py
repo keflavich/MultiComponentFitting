@@ -36,7 +36,6 @@ except SystemError:
 cube = SpectralCube.read('gauss_cube_x2.fits')
 minicube = cube[:,75:78,47:50]
 
-
 parcube = fits.getdata('gauss_pars_x2.fits')
 modelcube = make_model_cube(minicube.spectral_axis.value, parcube[:,75:78,47:50])
 

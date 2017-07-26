@@ -23,10 +23,10 @@ except SystemError:
 fig = plt.figure()
 ax = fig.add_subplot(111, projection="3d")
 
-circles_kwargs = dict(n_samples=1000, noise=0.1,
-        i_range=[np.pi/2, 3*np.pi/2], j_range=[-np.pi/2, np.pi/2],
-        i_tilt=[1, .2, -.5], j_tilt=[0.5, -.4, .3],
-        i_xy0=[.75, 0.], j_xy0=[-.75, 0.])
+circles_kwargs = dict(n_samples=1000, noise=0.1, i_range=[np.pi/2, 3*np.pi/2],
+                      j_range=[-np.pi/2, np.pi/2], i_tilt=[1, .2, -.5],
+                      j_tilt=[0.5, -.4, .3], i_xy0=[.75, 0.], j_xy0=[-.75, 0.],
+                      random_state=42)
 
 D, l = make_circles.two_circles(**circles_kwargs)
 
@@ -53,9 +53,9 @@ dec_bins = np.linspace(toy.dec.min(), toy.dec.max(), nbins)
 ra_grid, dec_grid = np.meshgrid(ra_bins, dec_bins)
 
 vlsr_map_1 = math_utils.planar_tilt(ra_grid, dec_grid,
-        *circles_kwargs["i_tilt"])
+                                    *circles_kwargs["i_tilt"])
 vlsr_map_2 = math_utils.planar_tilt(ra_grid, dec_grid,
-        *circles_kwargs["j_tilt"])
+                                    *circles_kwargs["j_tilt"])
 
 sig_map_1 = np.zeros_like(vlsr_map_1) + 0.2
 sig_map_2 = np.zeros_like(vlsr_map_1) + 0.2
@@ -86,9 +86,6 @@ for i, (pararr, ax, parname) in enumerate(zip(parcube, axarr.ravel(),
 plt.savefig('figs/summary-x2.png', dpi=130)
 
 # generate a toy spectral cube
-yy, xx = np.indices(parcube.shape[1:])
-
-
 modelcube = make_model_cube(xarr, parcube)
 
 # add noise to taste

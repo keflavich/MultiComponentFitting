@@ -18,7 +18,7 @@ def make_model_cube(xarr, parcube):
         x, y = int(xy[0]), int(xy[1])
         modelcube[:, y, x] = gauss_x2(xarr, pars=parcube[:, y, x])
 
-    for x, y in ProgressBar(list(np.ndindex(parcube.shape[1:]))):
+    for y, x in ProgressBar(list(np.ndindex(parcube.shape[1:]))):
         model_a_pixel([x, y])
 
     return modelcube
