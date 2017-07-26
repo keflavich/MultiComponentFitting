@@ -54,14 +54,14 @@ fitcube_mcmc = minicube_model(np.arange(num_pts),
                               *[x.value for x in result_mcmc.params.values()],
                               npix=npix)
 
-fitcube_pymc = minicube_model(np.arange(num_pts), pymc_medians['amp'],
-                              pymc_medians['ampdx'], pymc_medians['ampdy'],
-                              pymc_medians['center'], pymc_medians['centerdx'],
-                              pymc_medians['centerdy'], pymc_medians['sigma'],
-                              pymc_medians['sigmadx'], pymc_medians['sigmady'],
+fitcube_pymc = minicube_model(np.arange(num_pts), pymc_medians['amp0'],
+                              pymc_medians['ampdx0'], pymc_medians['ampdy0'],
+                              pymc_medians['center0'], pymc_medians['centerdx0'],
+                              pymc_medians['centerdy0'], pymc_medians['sigma0'],
+                              pymc_medians['sigmadx0'], pymc_medians['sigmady0'],
                               npix=npix, force_positive=False)
 
-fitcube_pymc = pymc_medians['on'] * fitcube_pymc
+fitcube_pymc = pymc_medians['on0'] * fitcube_pymc
 
 
 pl.figure(1).clf()
