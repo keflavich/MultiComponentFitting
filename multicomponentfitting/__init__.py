@@ -12,5 +12,7 @@ from ._astropy_init import *
 
 # For egg_info test builds to pass, put package imports here.
 if not _ASTROPY_SETUP_:
-    # TODO: imports
-    pass
+    from . import mcmcmc
+    from . import spatially_aware_fitting
+    from . import toy_datasets
+    from . import nonparametric
