@@ -34,15 +34,24 @@ def minicube_model(xax,
 
     return model
 
-def minicube_model_generator(npix=3, func=gaussian,):
 
-    def minicube_modelfunc(xax, amp, ampdx, ampdy, center, centerdx, centerdy,
-                           sigma, sigmadx, sigmady,):
-        return minicube_model(xax, amp, ampdx, ampdy, center, centerdx,
-                              centerdy, sigma, sigmadx, sigmady, npix=npix,
-                              func=func)
+def multicomp_minicube_model_generator(npix=3, func=gaussian, ncomps=1):
+
+    ncomps_per = 9
+
+    def minicube_modelfunc(xax, *args):
+
+        models = [minicube_model(xax, *args[ii*ncomps_per:(ii+1)*ncomps_per],
+                                 func=func)
+                  for ii in range(ncomps)]
+        return np.sum(models, axis=0)
+
+    argnames = "amp, ampdx, ampdy, center, centerdx, centerdy, sigma, sigmadx, sigmady".split(", ")
+
+    minicube_model.argnames = [an+str(ii) for ii in range(ncomps) for an in argnames]
 
     return minicube_modelfunc
+
 
 
 def unconstrained_fitter(minicube, xax, input_parameters, **model_kwargs):
@@ -50,7 +59,7 @@ def unconstrained_fitter(minicube, xax, input_parameters, **model_kwargs):
     input_parameters should be a dict
     """
 
-    model = lmfit.Model(minicube_model_generator(**model_kwargs),
+    model = lmfit.Model(multicomp_minicube_model_generator(**model_kwargs),
                         independent_vars=['xax'])
 
     params = model.make_params()
@@ -69,15 +78,17 @@ def constrained_fitter(minicube, xax, input_parameters, **model_kwargs):
     input_parameters should be a dict
     """
 
-    model = lmfit.Model(minicube_model_generator(**model_kwargs),
+    model = lmfit.Model(multicomp_minicube_model_generator(**model_kwargs),
                         independent_vars=['xax'])
 
     params = model.make_params()
 
     for par in params:
         params[par].value = input_parameters[par]
-    params['amp'].min = 0
-    params['sigma'].min = 0
+        if 'amp' in par and par[4] != 'd':
+            params[par].min = 0
+        elif 'sigma' in par and par[6] != 'd':
+            params[par].min = 0
 
     result = model.fit(minicube, xax=xax,
                        params=params)
