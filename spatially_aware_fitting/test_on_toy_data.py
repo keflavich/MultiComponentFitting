@@ -3,7 +3,7 @@ from spectral_cube import SpectralCube
 import imp
 import minicube_fit
 imp.reload(minicube_fit)
-from minicube_fit import unconstrained_fitter, fit_plotter
+from minicube_fit import constrained_fitter, fit_plotter
 from astropy.io import fits
 try:
     from ..toy_datasets.model_utils import make_model_cube
@@ -33,20 +33,21 @@ except SystemError:
 
         return modelcube
 
+npix = 5
 pixx, pixy = 83,72
 
 cube = SpectralCube.read('gauss_cube_x2.fits')
-minicube = cube[:,pixy-1:pixy+2,pixx-1:pixx+2]
+minicube = cube[:,pixy-npix//2:pixy+npix//2+1,pixx-npix//2:pixx+npix//2+1]
 
 parcube = fits.getdata('gauss_pars_x2.fits')
-modelcube = make_model_cube(minicube.spectral_axis.value, parcube[:,pixy-1:pixy+2,pixx-1:pixx+2])
+modelcube = make_model_cube(minicube.spectral_axis.value, parcube[:,pixy-npix//2:pixy+npix//2+1,pixx-npix//2:pixx+npix//2+1])
 
 # with a terrible guess, it works terribly...
 guess = {'amp': 0.1, 'ampdx': 0, 'ampdy': 0,
          'center': 0, 'centerdx': 0, 'centerdy': 0,
          'sigma': 2.5, 'sigmadx': 0, 'sigmady': 0,}
 
-result = unconstrained_fitter(minicube.filled_data[:].value, minicube.spectral_axis.value, guess, npix=3)
+result = constrained_fitter(minicube.filled_data[:].value, minicube.spectral_axis.value, guess, npix=npix)
 
 print("LSQ Parameters:")
 for par in result.params:
@@ -55,4 +56,4 @@ for par in result.params:
 
 
 fit_plotter(result, minicube.filled_data[:].value,
-            minicube.spectral_axis.value, modelcube=modelcube, npix=3)
+            minicube.spectral_axis.value, modelcube=modelcube, npix=npix)

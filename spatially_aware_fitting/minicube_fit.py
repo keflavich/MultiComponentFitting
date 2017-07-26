@@ -64,6 +64,28 @@ def unconstrained_fitter(minicube, xax, input_parameters, **model_kwargs):
     return result
 
 
+def constrained_fitter(minicube, xax, input_parameters, **model_kwargs):
+    """
+    input_parameters should be a dict
+    """
+
+    model = lmfit.Model(minicube_model_generator(**model_kwargs),
+                        independent_vars=['xax'])
+
+    params = model.make_params()
+
+    for par in params:
+        params[par].value = input_parameters[par]
+    params['amp'].min = 0
+    params['sigma'].min = 0
+
+    result = model.fit(minicube, xax=xax,
+                       params=params)
+
+    return result
+
+
+
 def fit_plotter(result, data, xaxis, npix=3, fignum=1, clear=True,
                 modelcube=None,
                 figsize=(12,12)):
@@ -83,7 +105,7 @@ def fit_plotter(result, data, xaxis, npix=3, fignum=1, clear=True,
                              npix=npix)
 
     for ii,((yy,xx), ax) in enumerate(zip(np.ndindex((npix,npix)), axes.ravel())):
-        ax.plot(xaxis, data[:,yy,xx], 'k-', alpha=0.65, zorder=-5, linewidth=1,
+        ax.plot(xaxis, data[:,yy,xx], 'k-', alpha=0.5, zorder=-5, linewidth=1,
                 drawstyle='steps-mid')
         ax.plot(xaxis, fitcube[:,yy,xx], 'b--', alpha=1, zorder=0,
                 linewidth=1,
@@ -92,7 +114,8 @@ def fit_plotter(result, data, xaxis, npix=3, fignum=1, clear=True,
                 linewidth=1,
                 drawstyle='steps-mid')
         if modelcube is not None:
-            ax.plot(xaxis, modelcube[:,yy,xx], 'k-', alpha=0.25, zorder=-10,
+            ax.plot(xaxis, modelcube[:,yy,xx], 'k-', alpha=0.15, zorder=-10,
                     linewidth=3, drawstyle='steps-mid')
 
     pl.tight_layout()
+    pl.subplots_adjust(hspace=0, wspace=0)
