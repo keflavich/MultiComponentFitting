@@ -192,12 +192,18 @@ def MultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3, min_p=0.5,
         on_trace = trace.get_values('on')
         on_frac = on_trace.sum(0) / float(on_trace.shape[0])
 
-        print(on_frac)
-
         if any(on_frac < min_p):
             ncomp -= 1
             continue
         else:
+            # Now we're going to sample more with the model we're confident in
+            # Start from where the chain left off and don't bother tuning
+            # again.
+            if fit_kwargs.get('tune') is not None:
+                fit_kwargs.pop('tune')
+            with model:
+                trace = pm.sample(trace=trace, tune=0, **fit_kwargs)
+
             break
 
     return trace, model
