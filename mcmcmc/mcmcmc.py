@@ -114,6 +114,8 @@ def MultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3, min_p=0.5,
 
         with model:
 
+            on = pm.Bernoulli("on", p=0.5, shape=(ncomp, ))
+
             for i in np.arange(ncomp):
                 ii = i + 1
                 param_dict['amp{}'.format(ii)] = \
@@ -125,18 +127,15 @@ def MultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3, min_p=0.5,
                 param_dict['sigv{}'.format(ii)] = \
                     pm.Uniform('sigv{}'.format(ii), lower=1e-5,
                                upper=np.ptp(Xdata / 2.))
-                param_dict["on{}".format(ii)] = \
-                    pm.Bernoulli('on{}'.format(ii), p=0.5)
-
                 if i == 0:
                     mu = theano_gaussian(Xdata,
-                                         param_dict['on{}'.format(ii)],
+                                         on[i],
                                          param_dict['amp{}'.format(ii)],
                                          param_dict['vcen{}'.format(ii)],
                                          param_dict['sigv{}'.format(ii)])
                 else:
                     mu += theano_gaussian(Xdata,
-                                          param_dict['on{}'.format(ii)],
+                                          on[i],
                                           param_dict['amp{}'.format(ii)],
                                           param_dict['vcen{}'.format(ii)],
                                           param_dict['sigv{}'.format(ii)])
@@ -149,10 +148,8 @@ def MultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3, min_p=0.5,
             trace = pm.sample(start=start, **fit_kwargs)
 
         # Get the samples for the on parameters
-        on_frac = np.zeros((ncomp, ))
-        for i in np.arange(ncomp):
-            samps = trace.get_values('on{}'.format(i + 1))
-            on_frac[i] = samps.sum() / float(samps.shape[0])
+        on_trace = trace.get_values('on')
+        on_frac = on_trace.sum(0) / float(on_trace.shape[0])
 
         print(on_frac)
 
@@ -175,7 +172,7 @@ def RealizedFit(trace, XdataIn, model, n_draws=10, with_noise=False):
         while 'amp{0}'.format(i) in model.named_vars:
             nSamp = len(trace['amp{0}'.format(i)])
             draws = np.floor(np.random.rand(n_draws) * nSamp).astype(np.int)
-            mu += (trace['on{0}'.format(i)][draws]
+            mu += (trace['on'][draws, i - 1]
                    * trace['amp{0}'.format(i)][draws]
                    * np.exp(-(Xdata - trace['vcen{0}'.format(i)][draws])**2
                             / (2*trace['sigv{0}'.format(i)][draws]**2)))
