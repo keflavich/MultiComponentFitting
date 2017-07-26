@@ -5,7 +5,7 @@ import numpy as np
 from .minicube_fit import minicube_model
 
 
-def minicube_pymc_fit(xax, data, guesses, ncomp=1, **fit_kwargs):
+def minicube_pymc_fit(xax, data, guesses, ncomps=1, **fit_kwargs):
     '''
     pymc fitting of a set of single Gaussians.
     '''
@@ -16,7 +16,7 @@ def minicube_pymc_fit(xax, data, guesses, ncomp=1, **fit_kwargs):
 
         params_dict = {}
 
-        for i in range(ncomp):
+        for i in range(ncomps):
             model_i, params_dict_i = \
                 spatial_gaussian_model(xax, data, guesses, comp_num=i)
             if i == 0:
