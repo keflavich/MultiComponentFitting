@@ -2,7 +2,7 @@ import pymc3 as pm
 import matplotlib.pyplot as plt
 import numpy as np
 
-def BayesianMultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3):
+def BayesianMultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3, nsamples=100):
     """
     Multi-component fitting of lines.
     """
@@ -88,7 +88,7 @@ def BayesianMultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3):
             Y_obs = pm.Normal('Y_obs', mu=mu, sd=sigma, observed=Ydata)
 
     with model:
-        trace = pm.sample()
+        trace = pm.sample(nsamples)
 
     return(trace, model)
 
