@@ -1,5 +1,6 @@
 import numpy as np
 import lmfit
+import collections
 
 def plane(xx, yy, value, dx, dy, xcen=1, ycen=1):
     z = ((xx-xcen) * dx + (yy-ycen) * dy) + value
@@ -39,16 +40,32 @@ def multicomp_minicube_model_generator(npix=3, func=gaussian, ncomps=1):
 
     ncomps_per = 9
 
-    def minicube_modelfunc(xax, *args):
+    argnames = "amp, ampdx, ampdy, center, centerdx, centerdy, sigma, sigmadx, sigmady".split(", ")
+    argdict = collections.OrderedDict([(kw+str(ii), None)
+                                       for ii in range(ncomps) for kw in argnames])
 
-        models = [minicube_model(xax, *args[ii*ncomps_per:(ii+1)*ncomps_per],
-                                 func=func)
+    def minicube_modelfunc(xax, *args, **kwargs):
+
+        for kw in kwargs:
+            if kw in argdict:
+                argdict[kw] = kwargs[kw]
+            else:
+                raise ValueError("Unrecognized parameter {0}".format(kw))
+
+        kwarg_dict = {}
+        for ii in range(ncomps):
+            kwarg_dict[ii] = dict(zip(argnames,
+                                      list(argdict.values())[ncomps_per*ii:ncomps_per*(ii+1)]))
+
+        models = [minicube_model(xax,
+                                 **kwarg_dict[ii],
+                                 func=func, npix=npix)
                   for ii in range(ncomps)]
         return np.sum(models, axis=0)
 
-    argnames = "amp, ampdx, ampdy, center, centerdx, centerdy, sigma, sigmadx, sigmady".split(", ")
 
-    minicube_model.argnames = [an+str(ii) for ii in range(ncomps) for an in argnames]
+    minicube_modelfunc.argnames = ['xax']+[an+str(ii) for ii in range(ncomps) for an in argnames]
+    minicube_modelfunc.kwargs = {}
 
     return minicube_modelfunc
 
@@ -85,9 +102,9 @@ def constrained_fitter(minicube, xax, input_parameters, **model_kwargs):
 
     for par in params:
         params[par].value = input_parameters[par]
-        if 'amp' in par and par[4] != 'd':
+        if 'amp' in par and par[3] != 'd':
             params[par].min = 0
-        elif 'sigma' in par and par[6] != 'd':
+        elif 'sigma' in par and par[5] != 'd':
             params[par].min = 0
 
     result = model.fit(minicube, xax=xax,

@@ -4,7 +4,7 @@ import numpy as np
 
 # HACK
 import imp
-import minicube_fit
+from multicomponentfitting.spatially_aware_fitting import minicube_fit, minicube_pymc_fit
 imp.reload(minicube_fit)
 
 from minicube_fit import minicube_model, unconstrained_fitter
@@ -23,9 +23,9 @@ model[model<0] = 0
 
 model_with_noise = np.random.randn(*model.shape)*0.1 + model
 
-guess = {'amp': 0.3, 'ampdx': 0, 'ampdy': 0,
-         'center': 25, 'centerdx': 0, 'centerdy': 0,
-         'sigma': 10, 'sigmadx': 0, 'sigmady': 0,}
+guess = {'amp0': 0.3, 'ampdx0': 0, 'ampdy0': 0,
+         'center0': 25, 'centerdx0': 0, 'centerdy0': 0,
+         'sigma0': 10, 'sigmadx0': 0, 'sigmady0': 0,}
 
 result = unconstrained_fitter(model_with_noise, np.arange(num_pts), guess,
                               npix=npix)
