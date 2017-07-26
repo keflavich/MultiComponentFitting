@@ -45,6 +45,16 @@ def multicomp_minicube_model_generator(npix=3, func=gaussian, ncomps=1):
                                        for ii in range(ncomps) for kw in argnames])
 
     def minicube_modelfunc(xax, *args, **kwargs):
+        """
+        Two possibilities:
+            pass a list of arguments in the correct order
+            pass by kwarg
+        """
+
+        if len(args) == 0:
+            assert len(kwargs) >= ncomps_per
+        elif len(kwargs) >= ncomps_per * ncomps:
+            assert len(args) == 0
 
         generic_kwargs = {'npix': npix, 'func': func}
 
@@ -58,8 +68,13 @@ def multicomp_minicube_model_generator(npix=3, func=gaussian, ncomps=1):
 
         kwarg_dict = {}
         for ii in range(ncomps):
+            # if someone tries to pass both by kwarg and arg, this will be awful...
             kwarg_dict[ii] = dict(zip(argnames,
                                       list(argdict.values())[ncomps_per*ii:ncomps_per*(ii+1)]))
+
+            for jj,val in enumerate(args):
+                kwarg_dict[ii][argnames[jj % ncomps_per]] = val
+
 
         models = [minicube_model(xax,
                                  **kwarg_dict[ii],
@@ -133,7 +148,7 @@ def fit_plotter(result, data, xaxis, npix=3, fignum=1, clear=True,
     fig, axes = pl.subplots(npix, npix, sharex=True, sharey=True, num=fignum,
                             figsize=figsize)
 
-    fitcube = modelfunc(xaxis, *[x.value for x in params.values()])
+    fitcube = modelfunc(xaxis, *[x.value for x in params.values()], npix=npix)
 
     for ii,((yy,xx), ax) in enumerate(zip(np.ndindex((npix,npix)), axes.ravel())):
         ax.plot(xaxis, data[:,yy,xx], 'k-', alpha=0.5, zorder=-5, linewidth=1,
