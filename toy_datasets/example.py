@@ -10,10 +10,12 @@ try:
     #from .math_utils import planar_tilt, periodic_wiggle,
     from . import math_utils
     from . import make_circles
+    from .model_utils import make_model_cube
 except SystemError:
     # forgive my non-pythonic blasphemy, but I like to %run my scripts
     import math_utils
     import make_circles
+    from model_utils import make_model_cube
     #from math_utils import planar_tilt, periodic_wiggle, intensity_from_density
 
 
@@ -84,21 +86,9 @@ plt.savefig('figs/summary-x2.png', dpi=130)
 
 # generate a toy spectral cube
 yy, xx = np.indices(parcube.shape[1:])
-modelcube = np.empty(shape=(xarr.size, ) + parcube.shape[1:])
 
-# okay this is getting too hacky, but just I want to get a toy cube fast...
-# TODO refactor into pyspeckit spectral models / proper xarr...
-gauss = lambda x, a, xoff, sig: a*np.exp(-(x - xoff)**2 / sig**2 / 2)
-def gauss_x2(x, pars):
-    p1, p2 = pars[:3], pars[3:]
-    return gauss(x, *p1) + gauss(x, *p2)
 
-def model_a_pixel(xy):
-    x, y = int(xy[0]), int(xy[1])
-    modelcube[:, y, x] = gauss_x2(xarr, pars=parcube[:, y, x])
-
-for x, y in ProgressBar(list(np.ndindex(parcube.shape[1:]))):
-    model_a_pixel([x, y])
+modelcube = make_model_cube(parcube)
 
 # add noise to taste
 snr = 42

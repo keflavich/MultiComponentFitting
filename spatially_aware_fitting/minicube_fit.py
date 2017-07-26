@@ -65,6 +65,7 @@ def unconstrained_fitter(minicube, xax, input_parameters, **model_kwargs):
 
 
 def fit_plotter(result, data, xaxis, npix=3, fignum=1, clear=True,
+                modelcube=None,
                 figsize=(12,12)):
     # npix unfortunately has to be hand-specified...
 
@@ -88,5 +89,8 @@ def fit_plotter(result, data, xaxis, npix=3, fignum=1, clear=True,
                 drawstyle='steps-mid')
         ax.plot((data-fitcube)[:,yy,xx], 'r--', alpha=0.85, zorder=-10, linewidth=1,
                 drawstyle='steps-mid')
+        if modelcube is not None:
+            ax.plot(modelcube[:,yy,xx], 'k-', alpha=0.25, zorder=-10, linewidth=3,
+                    drawstyle='steps-mid')
 
     pl.tight_layout()
