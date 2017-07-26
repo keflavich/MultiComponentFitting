@@ -15,13 +15,11 @@ def minicube_model(xax,
                    npix=3,
                    func=gaussian,
                    force_positive=True,
-                   check_isfinite=True
                   ):
 
-    if check_isfinite:
-        for par in (amp, ampdx, ampdy, center, centerdx, centerdy,
-                    sigma, sigmadx, sigmady):
-            assert np.isfinite(par)
+    for par in (amp, ampdx, ampdy, center, centerdx, centerdy,
+                sigma, sigmadx, sigmady):
+        assert np.isfinite(par)
 
     yy,xx = np.indices([npix, npix], dtype='float')
 
@@ -64,3 +62,31 @@ def unconstrained_fitter(minicube, xax, input_parameters, **model_kwargs):
                        params=params)
 
     return result
+
+
+def fit_plotter(result, data, xaxis, npix=3, fignum=1, clear=True,
+                figsize=(12,12)):
+    # npix unfortunately has to be hand-specified...
+
+    import pylab as pl
+
+    params = result.params
+
+    if clear:
+        pl.figure(fignum, figsize=figsize).clf()
+    fig, axes = pl.subplots(npix, npix, sharex=True, sharey=True, num=fignum,
+                            figsize=figsize)
+
+    fitcube = minicube_model(xaxis,
+                             *[x.value for x in params.values()],
+                             npix=npix)
+
+    for ii,((yy,xx), ax) in enumerate(zip(np.ndindex((npix,npix)), axes.ravel())):
+        ax.plot(data[:,yy,xx], 'k-', alpha=0.85, zorder=-5, linewidth=1,
+                drawstyle='steps-mid')
+        ax.plot(fitcube[:,yy,xx], 'b--', alpha=0.85, zorder=-5, linewidth=1,
+                drawstyle='steps-mid')
+        ax.plot((data-fitcube)[:,yy,xx], 'r--', alpha=0.85, zorder=-10, linewidth=1,
+                drawstyle='steps-mid')
+
+    pl.tight_layout()
