@@ -7,8 +7,8 @@ import imp
 from multicomponentfitting.spatially_aware_fitting import minicube_fit, minicube_pymc_fit
 imp.reload(minicube_fit)
 
-from minicube_fit import minicube_model, unconstrained_fitter
-from minicube_pymc import minicube_pymc_fit
+from multicomponentfitting.spatially_aware_fitting.minicube_fit import minicube_model, unconstrained_fitter
+from multicomponentfitting.spatially_aware_fitting.minicube_pymc import minicube_pymc_fit
 
 num_pts = 100
 npix = 5
