@@ -13,6 +13,7 @@ try:
     from .model_utils import make_model_cube
 except SystemError:
     # forgive my non-pythonic blasphemy, but I like to %run my scripts
+    # :+1: from me!!!
     import math_utils
     import make_circles
     from model_utils import make_model_cube
@@ -88,7 +89,7 @@ plt.savefig('figs/summary-x2.png', dpi=130)
 yy, xx = np.indices(parcube.shape[1:])
 
 
-modelcube = make_model_cube(parcube)
+modelcube = make_model_cube(xarr, parcube)
 
 # add noise to taste
 snr = 42
