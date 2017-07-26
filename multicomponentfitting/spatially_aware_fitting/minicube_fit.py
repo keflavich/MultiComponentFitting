@@ -16,11 +16,13 @@ def minicube_model(xax,
                    npix=3,
                    func=gaussian,
                    force_positive=True,
+                   check_isfinite=True,
                   ):
 
-    for par in (amp, ampdx, ampdy, center, centerdx, centerdy,
-                sigma, sigmadx, sigmady):
-        assert np.isfinite(par)
+    if check_isfinite:
+        for par in (amp, ampdx, ampdy, center, centerdx, centerdy,
+                    sigma, sigmadx, sigmady):
+            assert np.isfinite(par)
 
     yy,xx = np.indices([npix, npix], dtype='float')
 
@@ -76,8 +78,7 @@ def multicomp_minicube_model_generator(npix=3, func=gaussian, ncomps=1):
                 kwarg_dict[ii][argnames[jj % ncomps_per]] = val
 
 
-        models = [minicube_model(xax,
-                                 **kwarg_dict[ii],
+        models = [minicube_model(xax, **kwarg_dict[ii],
                                  **generic_kwargs)
                   for ii in range(ncomps)]
         return np.sum(models, axis=0)
