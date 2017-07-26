@@ -5,7 +5,7 @@ import numpy as np
 
 def BayesianMultiComponentFit(Xdata, Ydata, y_error=None, max_ncomp=3):
     """
-    Multi-component fitting of lines.
+    Multi-component fitting of lines.  Queued for deletion.
     """
 
     model = pm.Model()
