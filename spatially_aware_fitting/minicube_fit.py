@@ -83,14 +83,16 @@ def fit_plotter(result, data, xaxis, npix=3, fignum=1, clear=True,
                              npix=npix)
 
     for ii,((yy,xx), ax) in enumerate(zip(np.ndindex((npix,npix)), axes.ravel())):
-        ax.plot(data[:,yy,xx], 'k-', alpha=0.85, zorder=-5, linewidth=1,
+        ax.plot(xaxis, data[:,yy,xx], 'k-', alpha=0.65, zorder=-5, linewidth=1,
                 drawstyle='steps-mid')
-        ax.plot(fitcube[:,yy,xx], 'b--', alpha=0.85, zorder=-5, linewidth=1,
+        ax.plot(xaxis, fitcube[:,yy,xx], 'b--', alpha=1, zorder=0,
+                linewidth=1,
                 drawstyle='steps-mid')
-        ax.plot((data-fitcube)[:,yy,xx], 'r--', alpha=0.85, zorder=-10, linewidth=1,
+        ax.plot(xaxis, (data-fitcube)[:,yy,xx], 'r--', alpha=0.85, zorder=-10,
+                linewidth=1,
                 drawstyle='steps-mid')
         if modelcube is not None:
-            ax.plot(modelcube[:,yy,xx], 'k-', alpha=0.25, zorder=-10, linewidth=3,
-                    drawstyle='steps-mid')
+            ax.plot(xaxis, modelcube[:,yy,xx], 'k-', alpha=0.25, zorder=-10,
+                    linewidth=3, drawstyle='steps-mid')
 
     pl.tight_layout()

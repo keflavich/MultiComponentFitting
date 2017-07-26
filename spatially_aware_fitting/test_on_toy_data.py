@@ -33,11 +33,13 @@ except SystemError:
 
         return modelcube
 
+pixx, pixy = 83,72
+
 cube = SpectralCube.read('gauss_cube_x2.fits')
-minicube = cube[:,75:78,47:50]
+minicube = cube[:,pixy-1:pixy+2,pixx-1:pixx+2]
 
 parcube = fits.getdata('gauss_pars_x2.fits')
-modelcube = make_model_cube(minicube.spectral_axis.value, parcube[:,75:78,47:50])
+modelcube = make_model_cube(minicube.spectral_axis.value, parcube[:,pixy-1:pixy+2,pixx-1:pixx+2])
 
 # with a terrible guess, it works terribly...
 guess = {'amp': 0.1, 'ampdx': 0, 'ampdy': 0,
