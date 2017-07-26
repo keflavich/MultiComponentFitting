@@ -34,11 +34,15 @@ fit_plotter(result, minicube.filled_data[:].value,
 # multicomp
 guess2 = guess.copy()
 guess2.update({k.replace('0','1'):v for k,v in guess.items()})
-guess2['center1'] += 5 # make sure they start as different comps
-guess2['center0'] -= 5 # make sure they start as different comps
+guess2['center1'] += 1 # make sure they start as different comps
+guess2['center0'] -= 1 # make sure they start as different comps
 result = constrained_fitter(minicube.filled_data[:].value,
                             minicube.spectral_axis.value, guess2, npix=npix,
-                            par_minima={'amp0':0.01, 'amp1':0.01},
+                            par_minima={'amp0':0.01, 'amp1':0.01,
+                                        'center0':0.7, 'center1':-1.16,},
+                            par_maxima={'center0':2.5, 'center1':0.7,
+                                        'sigma0':0.5, 'sigma1':0.5,
+                                       },
                             ncomps=2)
 
 print("LSQ Parameters:")

@@ -135,7 +135,8 @@ def constrained_fitter(minicube, xax, input_parameters, par_minima=None,
             for mpar in par_maxima:
                 if mpar not in params:
                     raise ValueError("Parameter {0} is not in params".format(mpar))
-                params[mpar].min = par_maxima[mpar]
+                params[mpar].max = par_maxima[mpar]
+
 
     result = model.fit(minicube, xax=xax,
                        params=params)
