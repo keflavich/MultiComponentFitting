@@ -46,9 +46,13 @@ def multicomp_minicube_model_generator(npix=3, func=gaussian, ncomps=1):
 
     def minicube_modelfunc(xax, *args, **kwargs):
 
+        generic_kwargs = {'npix': npix, 'func': func}
+
         for kw in kwargs:
             if kw in argdict:
                 argdict[kw] = kwargs[kw]
+            elif kw in ('npix', 'func', 'force_positive'):
+                generic_kwargs[kw] = kwargs[kw]
             else:
                 raise ValueError("Unrecognized parameter {0}".format(kw))
 
@@ -59,7 +63,7 @@ def multicomp_minicube_model_generator(npix=3, func=gaussian, ncomps=1):
 
         models = [minicube_model(xax,
                                  **kwarg_dict[ii],
-                                 func=func, npix=npix)
+                                 **generic_kwargs)
                   for ii in range(ncomps)]
         return np.sum(models, axis=0)
 
@@ -116,6 +120,7 @@ def constrained_fitter(minicube, xax, input_parameters, **model_kwargs):
 
 def fit_plotter(result, data, xaxis, npix=3, fignum=1, clear=True,
                 modelcube=None,
+                modelfunc=minicube_model,
                 figsize=(12,12)):
     # npix unfortunately has to be hand-specified...
 
@@ -128,9 +133,7 @@ def fit_plotter(result, data, xaxis, npix=3, fignum=1, clear=True,
     fig, axes = pl.subplots(npix, npix, sharex=True, sharey=True, num=fignum,
                             figsize=figsize)
 
-    fitcube = minicube_model(xaxis,
-                             *[x.value for x in params.values()],
-                             npix=npix)
+    fitcube = modelfunc(xaxis, *[x.value for x in params.values()])
 
     for ii,((yy,xx), ax) in enumerate(zip(np.ndindex((npix,npix)), axes.ravel())):
         ax.plot(xaxis, data[:,yy,xx], 'k-', alpha=0.5, zorder=-5, linewidth=1,

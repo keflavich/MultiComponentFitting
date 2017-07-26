@@ -2,10 +2,12 @@ import numpy as np
 from spectral_cube import SpectralCube
 from astropy.io import fits
 from multicomponentfitting.toy_datasets.model_utils import make_model_cube
-from multicomponentfitting.spatially_aware_fitting.minicube_fit import constrained_fitter, fit_plotter
+from multicomponentfitting.spatially_aware_fitting.minicube_fit import \
+    (constrained_fitter, fit_plotter, multicomp_minicube_model_generator)
 
 npix = 5
 pixx, pixy = 83,72
+pixx, pixy = 40,76
 
 cube = SpectralCube.read('gauss_cube_x2.fits')
 minicube = cube[:,pixy-npix//2:pixy+npix//2+1,pixx-npix//2:pixx+npix//2+1]
@@ -41,3 +43,8 @@ for par in result.params:
         print("{0}: {1}+/-{2}".format(par, result.params[par].value,
                                       result.params[par].stderr))
 
+fit_plotter(result=result,
+            data=minicube.filled_data[:].value,
+            xaxis=minicube.spectral_axis.value,
+            modelfunc=multicomp_minicube_model_generator(npix=npix, ncomps=2),
+            modelcube=modelcube, npix=npix)
