@@ -1,7 +1,6 @@
 import numpy as np
 import itertools
-import sys
-import time
+from astropy.io import fits
 
 def get_coverage(momzero, spacing):
     """
@@ -55,3 +54,53 @@ def define_coverage(cube, momzero, rsaa):
 
 
     return coverage, spec
+
+def write_averaged_spectra(cube_header, saa_spectra, rsaa,
+                           fits_fmatter='saa_cube_r{}.fits'):
+    """
+    Writes spectra averaged on multiple scales into fits files.
+
+    Parameters
+    ----------
+    cube_header : FITS header of the original spectral cube
+
+    saa_spectra : len(N) list
+                  Contains spectra averaged over N scales
+
+    rsaa : len(N) list
+           List of averaging radii
+
+    fits_fmatter : a string formatter for output files to be written to
+    """
+    for r, aver_cube in zip(rsaa, saa_spectra):
+        hdu = fits.PrimaryHDU(data=aver_cube, header=cube_header)
+        hdu.header['RSAA'] = r
+        hdu.writeto('saa_cube_r{}.fits'.format(r), overwrite=True)
+
+def plot_rsaa(coverage_coordinates, momzero, rsaa):
+    """
+    Plot the SAA boxes
+    """
+    # TODO: make an HDU instead and plot with astropy maybe?
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+
+    fig = plt.figure(1, figsize=(10.0, 4.0))
+    fig.clf()
+    ax = fig.add_subplot(111)
+    plt.imshow(momzero, cmap='Greys', origin='lower',
+               interpolation='nearest', vmax=100)
+    cols = ['black', 'red', 'blue']
+    size = [0.5, 1, 2]
+    alpha = [1, 0.8, 0.5]
+    for i, r in enumerate(rsaa):
+        covcoords = coverage_coordinates[i]
+        for j in range(len(covcoords[:, 0])):
+            if np.all(np.isfinite(covcoords[j, :])) == True:
+                ax.add_patch(
+                    patches.Rectangle(
+                        (covcoords[j, 0] - r, covcoords[j, 1] - r),
+                        r * 2., r * 2., facecolor='none',
+                        edgecolor=cols[i], lw=size[i], alpha=alpha[i]))
+    plt.draw()
+    plt.show()

@@ -1,18 +1,11 @@
 import numpy as np
-import sys
 import os
-import numpy as np
-from astropy.io import fits
 from astropy import wcs
 import warnings
-import matplotlib.pyplot as plt
-from matplotlib.pyplot import cm
-from matplotlib import colors
 warnings.simplefilter('ignore', wcs.FITSFixedWarning)
-import matplotlib.patches as patches
 from spectral_cube import SpectralCube
 from astropy import units as u
-from stage_1 import *
+from stage_1 import write_averaged_spectra, define_coverage, plot_rsaa
 
 #==============================================================================#
 # USER INPUT
@@ -40,27 +33,23 @@ y = np.arange(cube.shape[1])
 
 momzero = cube.with_mask(cube > u.Quantity(rms_approx*sigma_cut, cube.unit)).moment0(axis=0).value
 
+# get the coverage / average the subcube spectra
 coverage_coordinates = {}
 saa_spectra = {}
+for i, r in enumerate(rsaa):
+    coverage_coordinates[i], saa_spectra[i] = define_coverage(cube, momzero, r)
 
-for i in range(len(rsaa)):
-    coverage_coordinates[i], saa_spectra[i] = define_coverage(cube, momzero, rsaa[i])
+# write fits files for all the averaged spectra
+write_averaged_spectra(cube.header, saa_spectra, rsaa)
 
+# plot multiple coverage areas
+plot_rsaa(coverage_coordinates, momzero, rsaa)
 
-#fig = plt.figure(1, figsize=(15.0, 2.0))
-#fig.clf()
-#ax = fig.add_subplot(111)
-#plt.imshow(momzero, cmap='Greys', origin='lower', interpolation='nearest', vmax=100)
-#cols = ['black','red','blue']
-#size = [0.5,1,2]
-#alpha = [1,0.8,0.5]
-#for i in range(len(rsaa)):
-#    covcoords = coverage_coordinates[i]
-#    for j in range(len(covcoords[:,0])):
-#        if np.all(np.isfinite(covcoords[j,:])) ==True:
-#            ax.add_patch(patches.Rectangle((covcoords[j,0]-rsaa[i], covcoords[j,1]-rsaa[i]),
-#                                            rsaa[i]*2., rsaa[i]*2.,facecolor='none',
-#                                            edgecolor=cols[i],lw=size[i],
-#                                            alpha=alpha[i]))
-#plt.draw()
-#plt.show()
+# TODO: stage 2 begins here:
+#           - multicube the hell out of the fits files
+#           - plot the guesses suggested
+#           - maybe add DE?
+#           - wrap the guesses back to the full cube...
+#           - run pyspeckit on the whole thing
+
+# TODO: merge into the package strucutre @keflavich put together
