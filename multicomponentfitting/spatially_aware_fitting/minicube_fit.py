@@ -78,8 +78,10 @@ def multicomp_minicube_model_generator(npix=3, func=gaussian, ncomps=1):
                 kwarg_dict[ii][argnames[jj % ncomps_per]] = val
 
 
-        models = [minicube_model(xax, **kwarg_dict[ii],
-                                 **generic_kwargs)
+        # fix for pre-pep448 versions (< python 3.5)
+        generic_kwargs.update(kwarg_dict[ii])
+
+        models = [minicube_model(xax, **generic_kwargs)
                   for ii in range(ncomps)]
         return np.sum(models, axis=0)
 
