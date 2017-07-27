@@ -16,3 +16,4 @@ if not _ASTROPY_SETUP_:
     from . import spatially_aware_fitting
     from . import toy_datasets
     from . import nonparametric
+    from . import scousepy
