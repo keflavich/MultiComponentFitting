@@ -32,7 +32,7 @@ def define_coverage(cube, momzero, rsaa):
     cov_x, cov_y = get_coverage(momzero, spacing)
 
     coverage = np.full([len(cov_y)*len(cov_x),2], np.nan)
-    spec = np.full([250, len(cov_y), len(cov_x)], np.nan)
+    spec = np.full([cube.shape[0], len(cov_y), len(cov_x)], np.nan)
 
     for cx,cy in itertools.product(cov_x, cov_y):
 
