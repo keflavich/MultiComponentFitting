@@ -2,6 +2,8 @@
 import pymc3 as pm
 import theano as tt
 import numpy as np
+from astropy.convolution.kernels import Gaussian2DKernel
+from astropy.convolution import convolve
 from .minicube_fit import minicube_model
 
 
@@ -29,7 +31,13 @@ def minicube_pymc_fit(xax, data, guesses, ncomps=1, **fit_kwargs):
         sigma_n = pm.InverseGamma('sigma_n', alpha=1, beta=1)
         Y_obs = pm.Normal('Y_obs', mu=model, sd=sigma_n, observed=data)
 
-        trace = pm.sample(**fit_kwargs)
+        start = pm.find_MAP()
+        # Use the initial guesses for the Bernoulli parameters
+        for i in range(ncomps):
+            start['on{}'.format(i)] = guesses['on{}'.format(i)]
+
+        print(start)
+        trace = pm.sample(start=start, **fit_kwargs)
 
     medians = parameter_medians(trace)
     stddevs = parameter_stddevs(trace)
@@ -40,7 +48,7 @@ def minicube_pymc_fit(xax, data, guesses, ncomps=1, **fit_kwargs):
 def spatial_gaussian_model(spectral_axis, data, guesses,
                            prior_type='uniform', comp_num=0):
     '''
-    Create a model ofr a single Gaussian the varies spatially.
+    Create a model for a single Gaussian that varies spatially.
     '''
 
     if prior_type not in ['uniform', 'normal']:
@@ -52,12 +60,17 @@ def spatial_gaussian_model(spectral_axis, data, guesses,
         comp_num = ""
     add_num = lambda name: "{0}{1}".format(name, comp_num)
 
+    # guesses['p'] must match the shape of the data in the spatial dims
+    assert guesses[add_num('p')].shape == data.shape[1:]
+
     param_dict[add_num("on")] = \
-        pm.Bernoulli(add_num('on'), p=0.9, shape=data.shape[1:])
+        pm.Bernoulli(add_num('on'), p=guesses[add_num('p')],
+                     shape=data.shape[1:],
+                     testval=guesses[add_num('on')])
 
     if prior_type == "normal":
         param_dict[add_num("amp")] = \
-            pm.Normal(add_num('amp'), mu=guesses['amp'], sd=0.2)
+            pm.Normal(add_num('amp'), mu=guesses[add_num('amp')], sd=0.2)
         param_dict[add_num("ampdx")] = \
             pm.Normal(add_num('ampdx'), mu=guesses[add_num('ampdx')], sd=0.3)
         param_dict[add_num("ampdy")] = \
@@ -149,3 +162,20 @@ def parameter_stddevs(trace):
         stddev[var] = (bounds[1] - bounds[0]) / 2.
 
     return stddev
+
+
+def spatial_covariance_structure(on, cov_struct=Gaussian2DKernel,
+                                 **cov_kwargs):
+    '''
+    Impose a covariance structure on the Bernoulli samples.
+
+    For every on sample, the next sample the total probability
+    of those that are turned on around it, weighted by the
+    structure model.
+    '''
+
+    kernel = Gaussian2DKernel(**cov_kwargs)
+
+    pvals = convolve(on, kernel)
+
+    return pvals
