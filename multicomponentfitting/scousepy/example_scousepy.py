@@ -87,3 +87,54 @@ def run_scousepy():
 
 if __name__ == "__main__":
     run_scousepy()
+
+def run_scousepy_de():
+    datadirectory    =  '.'
+    filename         =  'CMZ_3mm_HNCO_60'
+    fitsfile         =  os.path.join(datadirectory, filename+'.fits')
+    rsaa             =  [2.0,5.0,8.0]
+    rms_approx       =  0.05
+    sigma_cut        =  3.0
+
+    cube = SpectralCube.read(fitsfile).with_spectral_unit(u.km/u.s)
+
+    momzero = cube.with_mask(cube > u.Quantity(
+        rms_approx * sigma_cut, cube.unit)).moment0(axis=0).value
+
+    # get the coverage / average the subcube spectra
+    coverage_coordinates, saa_spectra = [], []
+    for r in rsaa:
+        cc, ss = stage_1.define_coverage(cube, momzero, r)
+        coverage_coordinates.append(cc)
+        saa_spectra.append(ss)
+
+    # write fits files for all the averaged spectra
+    stage_1.write_averaged_spectra(cube.header, saa_spectra, rsaa)
+
+    # plot multiple coverage areas
+    stage_1.plot_rsaa(coverage_coordinates, momzero, rsaa)
+
+    npeaks = 1
+    diffevolution_kwargs = dict(
+        fits_flist=['saa_cube_r{}.fits'.format(r) for r in rsaa],
+        fittype="gaussian",
+        # [amlitude_range, velocity_range, sigma_range]
+        priors=[[0, 2], [-110, 110], [10, 50]],
+        npeaks=npeaks,  # priors and finesse can be expanded if need be
+        npars=3,
+        data_dir=".",
+        polish=False,
+        )
+
+    spc_list = stage_2.best_guesses_saa(method="diffevolution",
+                                        **diffevolution_kwargs)
+
+    # inspect the guesses suggested:
+    for spc in spc_list:
+        # HACK to allow the guess inspection (no errors on guesses):
+        spc.errcube = np.full_like(spc.parcube, 0.1)
+        # uuuuh not sure why this is needed
+        spc.specfit.fitter._make_parinfo(npeaks=diffevolution_kwargs['npeaks'])
+        spc.specfit.parinfo = spc.specfit.fitter.parinfo
+
+        spc.mapplot()

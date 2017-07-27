@@ -65,11 +65,9 @@ def multicube_best_guesses(spc, priors, finesse, fixed=None, model_grid=None,
     minpars = np.array(priors)[:, 0]
     maxpars = np.array(priors)[:, 1]
     spc.make_guess_grid(minpars, maxpars, finesse, fixed=fixed)
-    
+
     # all the number crunching happens here: model grids generated,
     # best models searched based on the squared residual sum
-    # self-NOTE: there's a bunch of useful kwargs one can pass along, like
-    #            'model_grid' if we've 
     redo = kwargs.pop("redo", False)
     spc.generate_model(redo=redo, **kwargs)
     spc.best_guess(**kwargs)
@@ -78,17 +76,36 @@ def multicube_best_guesses(spc, priors, finesse, fixed=None, model_grid=None,
 
 def differential_evolution_best_guesses(spc, priors, fixed=None, **kwargs):
     """
-    Could also use DE as a starting point, or any other "global" regression
-    method... WIP.
+    Could also use DE as a starting point, or any other global regression
+    method that is fast enough...
+
+    ...aaaand it's too slow.
     """
-    raise NotImplementedError
+    from astropy.utils.console import ProgressBar
+    from scipy.optimize import differential_evolution
+
+    spc.parcube = np.empty(shape=(len(priors),) + spc.cube.shape[1:])
+    for x,y in ProgressBar(list(np.ndindex(spc.cube.shape[1:])),
+                          #ipython_widget=True # nope nope nope
+                          ):
+        sp = spc.get_spectrum(x, y)
+        modelfunc = sp.specfit.get_full_model
+        # FIXME: uniform weighting is forced here, not always the case!
+        resid = lambda pars: ((modelfunc(pars=pars) - sp.data)**2).sum()
+        res = differential_evolution(resid, bounds=priors, **kwargs)
+        spc.parcube[:, y, x] = res.x
+
+    return spc.parcube
 
 def best_guesses_saa(fits_flist, priors, fittype="gaussian",
-                     npeaks=1, npars=3, data_dir=".", **kwargs):
+                     method="multicube", npeaks=1, npars=3, data_dir=".",
+                     **kwargs):
     """
     Wrapper function that runs multicube_best_guesses on a list of
     pre-averaged fits files with a given model and number of velocity
     components.
+
+    method : str; either "multicube" or "diffevolution"
     """
 
     # allow giving npars=1 form for priors / finesse for npars>1:
@@ -121,7 +138,10 @@ def best_guesses_saa(fits_flist, priors, fittype="gaussian",
         spc.specfit.fitter.npeaks = npeaks
 
         # causes spc.best_guesses to be generated
-        multicube_best_guesses(spc, priors, fixed=None, **kwargs)
+        if method == "multicube":
+            multicube_best_guesses(spc, priors, fixed=None, **kwargs)
+        if method == "diffevolution":
+            differential_evolution_best_guesses(spc, priors, fixed=None, **kwargs)
 
         spc_list.append(spc)
 
