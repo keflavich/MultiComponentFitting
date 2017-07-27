@@ -129,6 +129,8 @@ def parameter_medians(trace):
     medians = {}
 
     for var in trace.varnames:
+        if "__" in var:
+            continue
         medians[var] = np.median(trace.get_values(var), axis=0)
 
     return medians
@@ -141,6 +143,8 @@ def parameter_stddevs(trace):
     percs = [0.15865, 0.84135]
 
     for var in trace.varnames:
+        if "__" in var:
+            continue
         bounds = np.percentile(trace.get_values(var), percs, axis=0)
         stddev[var] = (bounds[1] - bounds[0]) / 2.
 
