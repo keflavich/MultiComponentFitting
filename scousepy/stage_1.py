@@ -93,10 +93,9 @@ def plot_rsaa(coverage_coordinates, momzero, rsaa):
     cols = ['black', 'red', 'blue']
     size = [0.5, 1, 2]
     alpha = [1, 0.8, 0.5]
-    for i, r in enumerate(rsaa):
-        covcoords = coverage_coordinates[i]
-        for j in range(len(covcoords[:, 0])):
-            if np.all(np.isfinite(covcoords[j, :])) == True:
+    for i, (r, covcoords) in enumerate(zip(rsaa, coverage_coordinates)):
+        for j in range(covcoords.shape[0]):
+            if np.all(np.isfinite(covcoords[j, :])):
                 ax.add_patch(
                     patches.Rectangle(
                         (covcoords[j, 0] - r, covcoords[j, 1] - r),

@@ -7,6 +7,8 @@ from spectral_cube import SpectralCube
 from astropy import units as u
 from stage_1 import write_averaged_spectra, define_coverage, plot_rsaa
 
+# TODO: merge into the package strucutre @keflavich put together
+
 #==============================================================================#
 # USER INPUT
 
@@ -34,10 +36,11 @@ y = np.arange(cube.shape[1])
 momzero = cube.with_mask(cube > u.Quantity(rms_approx*sigma_cut, cube.unit)).moment0(axis=0).value
 
 # get the coverage / average the subcube spectra
-coverage_coordinates = {}
-saa_spectra = {}
-for i, r in enumerate(rsaa):
-    coverage_coordinates[i], saa_spectra[i] = define_coverage(cube, momzero, r)
+coverage_coordinates, saa_spectra = [], []
+for r in rsaa:
+    cc, ss = define_coverage(cube, momzero, r)
+    coverage_coordinates.append(cc)
+    saa_spectra.append(ss)
 
 # write fits files for all the averaged spectra
 write_averaged_spectra(cube.header, saa_spectra, rsaa)
@@ -45,11 +48,42 @@ write_averaged_spectra(cube.header, saa_spectra, rsaa)
 # plot multiple coverage areas
 plot_rsaa(coverage_coordinates, momzero, rsaa)
 
-# TODO: stage 2 begins here:
-#           - multicube the hell out of the fits files
-#           - plot the guesses suggested
-#           - maybe add DE?
-#           - wrap the guesses back to the full cube...
-#           - run pyspeckit on the whole thing
 
-# TODO: merge into the package strucutre @keflavich put together
+from stage_2 import best_guesses_saa
+
+# TODO: PARALLELISE MULTICUBE!!! (after broadcasting MemoryError's are caught)
+npeaks = 1
+npeaks2finesse = {1: [20, 10, 10]}
+multicube_kwargs = dict(
+    fits_flist=['saa_cube_r{}.fits'.format(r) for r in rsaa],
+    fittype="gaussian",
+    # [amlitude_range, velocity_range, sigma_range]
+    priors=[[0, 2], [-110, 110], [10, 50]],
+    finesse=npeaks2finesse[npeaks],
+    npeaks=npeaks,  # priors and finesse can be expanded if need be
+    npars=3,
+    clip_edges=False,
+    model_grid=None, # we can directly pass an array of spectral models
+    # to avoid regenerating the spectral models (`redo=True` forces it anyway)
+    model_file="model_grid_x{}.npy".format(npeaks),
+    redo=False,
+    data_dir=".")
+
+# remove the spectral model file
+try:
+    os.remove(multicube_kwargs["model_file"])
+except FileNotFoundError:
+    pass
+
+spc_list = best_guesses_saa(**multicube_kwargs)
+
+# inspect the guesses suggested:
+for spc in spc_list:
+    spc.parcube = spc.best_guesses
+    # HACK to allow the guess inspection (no errors on guesses):
+    spc.errcube = np.full_like(spc.parcube, 0.1)
+    # uuuuh not sure why this is needed
+    spc.specfit.fitter._make_parinfo(npeaks=multicube_kwargs['npeaks'])
+    spc.specfit.parinfo = spc.specfit.fitter.parinfo
+
+    spc.mapplot()
