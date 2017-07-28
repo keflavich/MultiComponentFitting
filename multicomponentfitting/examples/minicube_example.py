@@ -3,7 +3,7 @@
 import numpy as np
 
 from multicomponentfitting.spatially_aware_fitting.minicube_fit import minicube_model, unconstrained_fitter
-from multicomponentfitting.spatially_aware_fitting.minicube_pymc import minicube_pymc_fit
+from multicomponentfitting.spatially_aware_fitting.minicube_pymc import minicube_pymc_fit, spatial_covariance_structure
 
 num_pts = 100
 npix = 5
@@ -21,6 +21,13 @@ model_with_noise = np.random.randn(*model.shape)*0.1 + model
 guess = {'amp0': 0.3, 'ampdx0': 0, 'ampdy0': 0,
          'center0': 25, 'centerdx0': 0, 'centerdy0': 0,
          'sigma0': 10, 'sigmadx0': 0, 'sigmady0': 0,}
+# Impose a spatial covariance structure to guide the Bernoulli parameters
+kern_width = 1
+# First step: give it the right answer
+guess['on0'] = model.sum(0) > 0
+# Wipe out a whole extra row.
+# guess['on0'][:, -1] = False
+guess['p0'] = spatial_covariance_structure(guess['on0'], stddev=kern_width)
 
 result = unconstrained_fitter(model_with_noise, np.arange(num_pts), guess,
                               npix=npix)
