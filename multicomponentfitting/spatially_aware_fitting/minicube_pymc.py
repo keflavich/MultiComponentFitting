@@ -2,12 +2,14 @@
 import pymc3 as pm
 import theano as tt
 import numpy as np
+import scipy.optimize as opt
 from astropy.convolution.kernels import Gaussian2DKernel
 from astropy.convolution import convolve
 from .minicube_fit import minicube_model
 
 
-def minicube_pymc_fit(xax, data, guesses, ncomps=1, **fit_kwargs):
+def minicube_pymc_fit(xax, data, guesses, ncomps=1, fmin=opt.fmin_bfgs,
+                      **fit_kwargs):
     '''
     pymc fitting of a set of single Gaussians.
     '''
@@ -31,7 +33,7 @@ def minicube_pymc_fit(xax, data, guesses, ncomps=1, **fit_kwargs):
         sigma_n = pm.InverseGamma('sigma_n', alpha=1, beta=1)
         Y_obs = pm.Normal('Y_obs', mu=model, sd=sigma_n, observed=data)
 
-        start = pm.find_MAP()
+        start = pm.find_MAP(fmin=fmin)
         # Use the initial guesses for the Bernoulli parameters
         for i in range(ncomps):
             start['on{}'.format(i)] = guesses['on{}'.format(i)]
