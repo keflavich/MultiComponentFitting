@@ -39,6 +39,12 @@ def minicube_pymc_fit(xax, data, guesses, ncomps=1, sample=True,
             start['on{}'.format(i)] = guesses['on{}'.format(i)]
 
         if sample:
+            # An attempt to use variational inference b/c it would be
+            # way faster. This fails terribly in every case I've tried
+            # trace = pm.fit(500, start=start, method='svgd',
+            #                inf_kwargs=dict(n_particles=100,
+            #                                temperature=1e-4),
+            #                ).sample(500)
             trace = pm.sample(start=start, **sampler_kwargs)
 
     if sample:
