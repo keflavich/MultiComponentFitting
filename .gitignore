@@ -48,12 +48,9 @@ distribute-*.tar.gz
 .tox
 .*.sw[op]
 *~
-<<<<<<< HEAD
 .project
 .pydevproject
 .settings
-=======
->>>>>>> master
 
 # Mac OSX
 .DS_Store
