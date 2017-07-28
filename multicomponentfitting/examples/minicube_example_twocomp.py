@@ -62,7 +62,7 @@ guess['p1'] = spatial_covariance_structure(guess['on1'], stddev=kern_width)
 # MCMC fit w/ pymc3
 pymc_medians, pymc_stddevs, trace, pymc_model = \
     minicube_pymc_fit(np.arange(num_pts), model_with_noise, guess, ncomps=ncomps,
-                      tune=200, draws=200)
+                      tune=200, draws=200, fmin=None)
 print("pymc Parameters:")
 for par in pymc_medians:
     if "__" in par:
