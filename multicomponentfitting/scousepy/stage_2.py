@@ -1,10 +1,13 @@
 """ TODO's / WIP
-- maybe add DE to overcome slow performance in > moderate dimensionality?
 - wrap the guesses back to the full cube...
 - run pyspeckit on the whole thing
 """
+from scipy.optimize import differential_evolution
 from multicube import SubCube
+from pyspeckit.specwarnings import PyspeckitWarning
+from astropy.utils.console import ProgressBar
 from astropy import log
+import warnings
 import numpy as np
 import os
 
@@ -78,20 +81,24 @@ def differential_evolution_best_guesses(spc, priors, fixed=None, **kwargs):
     """
     Could also use DE as a starting point, or any other global regression
     method that is fast enough...
-
-    ...aaaand it's too slow.
     """
-    from astropy.utils.console import ProgressBar
-    from scipy.optimize import differential_evolution
-
     spc.parcube = np.empty(shape=(len(priors),) + spc.cube.shape[1:])
-    for x,y in ProgressBar(list(np.ndindex(spc.cube.shape[1:])),
-                          #ipython_widget=True # nope nope nope
-                          ):
-        sp = spc.get_spectrum(x, y)
+    for y, x in ProgressBar(list(np.ndindex(spc.cube.shape[1:]))):
+        # we want our progressbars intact
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=PyspeckitWarning)
+            warnings.filterwarnings("ignore", "(under|divide|over)")
+            sp = spc.get_spectrum(x, y)
+        if not np.isfinite(sp.data.data).any():
+            continue
         modelfunc = sp.specfit.get_full_model
+        # masked arrays are a bit slower
+        if type(sp.data) is np.ma.masked_array:
+            specdata = sp.data.data
+        else:
+            specdata = sp.data
         # FIXME: uniform weighting is forced here, not always the case!
-        resid = lambda pars: ((modelfunc(pars=pars) - sp.data)**2).sum()
+        resid = lambda pars: ((modelfunc(pars=pars) - specdata)**2).sum()
         res = differential_evolution(resid, bounds=priors, **kwargs)
         spc.parcube[:, y, x] = res.x
 
@@ -131,7 +138,7 @@ def best_guesses_saa(fits_flist, priors, fittype="gaussian",
         #       to be expanded... here's a template of what cold ammonia setup
         #       would have to look like:
         #fitmodel = cold_ammonia_model
-        #line_names = ['oneone', 'twotwo']
+        #line_names = ["oneone", "twotwo"]
         #spc.specfit.Registry.add_fitter(fittype, npars=npars, function=
         #                                fitmodel(line_names=line_names))
         spc.update_model(fittype)

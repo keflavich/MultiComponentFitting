@@ -92,7 +92,7 @@ def run_scousepy_de():
     datadirectory    =  '.'
     filename         =  'CMZ_3mm_HNCO_60'
     fitsfile         =  os.path.join(datadirectory, filename+'.fits')
-    rsaa             =  [2.0,5.0,8.0]
+    rsaa             =  [8.0]
     rms_approx       =  0.05
     sigma_cut        =  3.0
 
