@@ -8,8 +8,8 @@ from astropy.convolution import convolve
 from .minicube_fit import minicube_model
 
 
-def minicube_pymc_fit(xax, data, guesses, ncomps=1, fmin=opt.fmin_bfgs,
-                      **fit_kwargs):
+def minicube_pymc_fit(xax, data, guesses, ncomps=1, sample=True,
+                      fmin=opt.fmin_bfgs, fmin_kwargs={}, **sampler_kwargs):
     '''
     pymc fitting of a set of single Gaussians.
     '''
@@ -33,18 +33,21 @@ def minicube_pymc_fit(xax, data, guesses, ncomps=1, fmin=opt.fmin_bfgs,
         sigma_n = pm.InverseGamma('sigma_n', alpha=1, beta=1)
         Y_obs = pm.Normal('Y_obs', mu=model, sd=sigma_n, observed=data)
 
-        start = pm.find_MAP(fmin=fmin)
+        start = pm.find_MAP(fmin=fmin, **fmin_kwargs)
         # Use the initial guesses for the Bernoulli parameters
         for i in range(ncomps):
             start['on{}'.format(i)] = guesses['on{}'.format(i)]
 
-        print(start)
-        trace = pm.sample(start=start, **fit_kwargs)
+        if sample:
+            trace = pm.sample(start=start, **sampler_kwargs)
 
-    medians = parameter_medians(trace)
-    stddevs = parameter_stddevs(trace)
+    if sample:
+        medians = parameter_medians(trace)
+        stddevs = parameter_stddevs(trace)
 
-    return medians, stddevs, trace, basic_model
+        return medians, stddevs, trace, basic_model
+    else:
+        return start, basic_model
 
 
 def spatial_gaussian_model(spectral_axis, data, guesses,
