@@ -18,7 +18,7 @@ def run_scousepy():
     # (just put it in the directory, it will get ignored by git)
     datadirectory    =  '.'
     # The data cube to be analysed
-    filename         =  'CMZ_3mm_HNCO_60'
+    filename         =  'CMZ_3mm_HNCO_60_SCOUSEcube'
     # Fits extension
     fitsfile         =  os.path.join(datadirectory, filename+'.fits')
     # The range in velocity, x, and y over which to fit
