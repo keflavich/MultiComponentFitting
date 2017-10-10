@@ -9,7 +9,7 @@ from astropy import units as u
 try:
     from . import stage_1
     from . import stage_2
-except SystemError:
+except (SystemError,ValueError):
     import stage_1
     import stage_2
 
