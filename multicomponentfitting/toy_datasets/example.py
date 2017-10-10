@@ -5,6 +5,7 @@ from cube_io import get_dummy_header
 from astropy.utils.console import ProgressBar
 from astropy.io import fits
 import pandas as pd
+import os
 
 try:
     #from .math_utils import planar_tilt, periodic_wiggle,
@@ -83,7 +84,8 @@ for i, (pararr, ax, parname) in enumerate(zip(parcube, axarr.ravel(),
     ax.set_title(parname + ' #{}'.format(i // 3 + 1))
     ax.axis('off')
 
-plt.savefig('figs/summary-x2.png', dpi=130)
+if not os.path.exists('figs/summary-x2.png'):
+    plt.savefig('figs/summary-x2.png', dpi=130)
 
 # generate a toy spectral cube
 modelcube = make_model_cube(xarr, parcube)

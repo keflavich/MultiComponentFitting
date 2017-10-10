@@ -2,13 +2,8 @@
 
 import numpy as np
 
-# HACK
-import imp
-import minicube_fit
-imp.reload(minicube_fit)
-
-from minicube_fit import minicube_model, unconstrained_fitter
-from minicube_pymc import minicube_pymc_fit
+from multicomponentfitting.spatially_aware_fitting.minicube_fit import minicube_model, unconstrained_fitter
+from multicomponentfitting.spatially_aware_fitting.minicube_pymc import minicube_pymc_fit, spatial_covariance_structure
 
 num_pts = 100
 npix = 5
@@ -23,9 +18,16 @@ model[model<0] = 0
 
 model_with_noise = np.random.randn(*model.shape)*0.1 + model
 
-guess = {'amp': 0.3, 'ampdx': 0, 'ampdy': 0,
-         'center': 25, 'centerdx': 0, 'centerdy': 0,
-         'sigma': 10, 'sigmadx': 0, 'sigmady': 0,}
+guess = {'amp0': 0.3, 'ampdx0': 0, 'ampdy0': 0,
+         'center0': 25, 'centerdx0': 0, 'centerdy0': 0,
+         'sigma0': 10, 'sigmadx0': 0, 'sigmady0': 0,}
+# Impose a spatial covariance structure to guide the Bernoulli parameters
+kern_width = 1
+# First step: give it the right answer
+guess['on0'] = model.sum(0) > 0
+# Wipe out a whole extra row.
+# guess['on0'][:, -1] = False
+guess['p0'] = spatial_covariance_structure(guess['on0'], stddev=kern_width)
 
 result = unconstrained_fitter(model_with_noise, np.arange(num_pts), guess,
                               npix=npix)
@@ -59,14 +61,14 @@ fitcube_mcmc = minicube_model(np.arange(num_pts),
                               *[x.value for x in result_mcmc.params.values()],
                               npix=npix)
 
-fitcube_pymc = minicube_model(np.arange(num_pts), pymc_medians['amp'],
-                              pymc_medians['ampdx'], pymc_medians['ampdy'],
-                              pymc_medians['center'], pymc_medians['centerdx'],
-                              pymc_medians['centerdy'], pymc_medians['sigma'],
-                              pymc_medians['sigmadx'], pymc_medians['sigmady'],
+fitcube_pymc = minicube_model(np.arange(num_pts), pymc_medians['amp0'],
+                              pymc_medians['ampdx0'], pymc_medians['ampdy0'],
+                              pymc_medians['center0'], pymc_medians['centerdx0'],
+                              pymc_medians['centerdy0'], pymc_medians['sigma0'],
+                              pymc_medians['sigmadx0'], pymc_medians['sigmady0'],
                               npix=npix, force_positive=False)
 
-fitcube_pymc = pymc_medians['on'] * fitcube_pymc
+fitcube_pymc = pymc_medians['on0'] * fitcube_pymc
 
 
 pl.figure(1).clf()

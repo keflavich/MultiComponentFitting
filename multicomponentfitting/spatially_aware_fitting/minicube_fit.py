@@ -1,5 +1,6 @@
 import numpy as np
 import lmfit
+import collections
 
 def plane(xx, yy, value, dx, dy, xcen=1, ycen=1):
     z = ((xx-xcen) * dx + (yy-ycen) * dy) + value
@@ -15,11 +16,13 @@ def minicube_model(xax,
                    npix=3,
                    func=gaussian,
                    force_positive=True,
+                   check_isfinite=True,
                   ):
 
-    for par in (amp, ampdx, ampdy, center, centerdx, centerdy,
-                sigma, sigmadx, sigmady):
-        assert np.isfinite(par)
+    if check_isfinite:
+        for par in (amp, ampdx, ampdy, center, centerdx, centerdy,
+                    sigma, sigmadx, sigmady):
+            assert np.isfinite(par)
 
     yy,xx = np.indices([npix, npix], dtype='float')
 
@@ -34,15 +37,60 @@ def minicube_model(xax,
 
     return model
 
-def minicube_model_generator(npix=3, func=gaussian,):
 
-    def minicube_modelfunc(xax, amp, ampdx, ampdy, center, centerdx, centerdy,
-                           sigma, sigmadx, sigmady,):
-        return minicube_model(xax, amp, ampdx, ampdy, center, centerdx,
-                              centerdy, sigma, sigmadx, sigmady, npix=npix,
-                              func=func)
+def multicomp_minicube_model_generator(npix=3, func=gaussian, ncomps=1):
+
+    ncomps_per = 9
+
+    argnames = "amp, ampdx, ampdy, center, centerdx, centerdy, sigma, sigmadx, sigmady".split(", ")
+    argdict = collections.OrderedDict([(kw+str(ii), None)
+                                       for ii in range(ncomps) for kw in argnames])
+
+    def minicube_modelfunc(xax, *args, **kwargs):
+        """
+        Two possibilities:
+            pass a list of arguments in the correct order
+            pass by kwarg
+        """
+
+        if len(args) == 0:
+            assert len(kwargs) >= ncomps_per
+        elif len(kwargs) >= ncomps_per * ncomps:
+            assert len(args) == 0
+
+        generic_kwargs = {'npix': npix, 'func': func}
+
+        for kw in kwargs:
+            if kw in argdict:
+                argdict[kw] = kwargs[kw]
+            elif kw in ('npix', 'func', 'force_positive'):
+                generic_kwargs[kw] = kwargs[kw]
+            else:
+                raise ValueError("Unrecognized parameter {0}".format(kw))
+
+        kwarg_dict = {}
+        for ii in range(ncomps):
+            # if someone tries to pass both by kwarg and arg, this will be awful...
+            kwarg_dict[ii] = dict(zip(argnames,
+                                      list(argdict.values())[ncomps_per*ii:ncomps_per*(ii+1)]))
+
+            for jj,val in enumerate(args):
+                kwarg_dict[ii][argnames[jj % ncomps_per]] = val
+
+
+        # fix for pre-pep448 versions (< python 3.5)
+        generic_kwargs.update(kwarg_dict[ii])
+
+        models = [minicube_model(xax, **generic_kwargs)
+                  for ii in range(ncomps)]
+        return np.sum(models, axis=0)
+
+
+    minicube_modelfunc.argnames = ['xax']+[an+str(ii) for ii in range(ncomps) for an in argnames]
+    minicube_modelfunc.kwargs = {}
 
     return minicube_modelfunc
+
 
 
 def unconstrained_fitter(minicube, xax, input_parameters, **model_kwargs):
@@ -50,7 +98,7 @@ def unconstrained_fitter(minicube, xax, input_parameters, **model_kwargs):
     input_parameters should be a dict
     """
 
-    model = lmfit.Model(minicube_model_generator(**model_kwargs),
+    model = lmfit.Model(multicomp_minicube_model_generator(**model_kwargs),
                         independent_vars=['xax'])
 
     params = model.make_params()
@@ -64,20 +112,34 @@ def unconstrained_fitter(minicube, xax, input_parameters, **model_kwargs):
     return result
 
 
-def constrained_fitter(minicube, xax, input_parameters, **model_kwargs):
+def constrained_fitter(minicube, xax, input_parameters, par_minima=None,
+                       par_maxima=None, **model_kwargs):
     """
     input_parameters should be a dict
     """
 
-    model = lmfit.Model(minicube_model_generator(**model_kwargs),
+    model = lmfit.Model(multicomp_minicube_model_generator(**model_kwargs),
                         independent_vars=['xax'])
 
     params = model.make_params()
 
     for par in params:
         params[par].value = input_parameters[par]
-    params['amp'].min = 0
-    params['sigma'].min = 0
+        if 'amp' in par and par[3] != 'd':
+            params[par].min = 0
+        elif 'sigma' in par and par[5] != 'd':
+            params[par].min = 0
+        if par_minima is not None:
+            for mpar in par_minima:
+                if mpar not in params:
+                    raise ValueError("Parameter {0} is not in params".format(mpar))
+                params[mpar].min = par_minima[mpar]
+        if par_maxima is not None:
+            for mpar in par_maxima:
+                if mpar not in params:
+                    raise ValueError("Parameter {0} is not in params".format(mpar))
+                params[mpar].max = par_maxima[mpar]
+
 
     result = model.fit(minicube, xax=xax,
                        params=params)
@@ -88,6 +150,7 @@ def constrained_fitter(minicube, xax, input_parameters, **model_kwargs):
 
 def fit_plotter(result, data, xaxis, npix=3, fignum=1, clear=True,
                 modelcube=None,
+                modelfunc=minicube_model,
                 figsize=(12,12)):
     # npix unfortunately has to be hand-specified...
 
@@ -100,9 +163,7 @@ def fit_plotter(result, data, xaxis, npix=3, fignum=1, clear=True,
     fig, axes = pl.subplots(npix, npix, sharex=True, sharey=True, num=fignum,
                             figsize=figsize)
 
-    fitcube = minicube_model(xaxis,
-                             *[x.value for x in params.values()],
-                             npix=npix)
+    fitcube = modelfunc(xaxis, *[x.value for x in params.values()], npix=npix)
 
     for ii,((yy,xx), ax) in enumerate(zip(np.ndindex((npix,npix)), axes.ravel())):
         ax.plot(xaxis, data[:,yy,xx], 'k-', alpha=0.5, zorder=-5, linewidth=1,
