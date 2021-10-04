@@ -176,7 +176,7 @@ def adaptive_savgol_filter(x, polyorder, min_window=11, deriv=0, delta=1.0,
             continue
 
         start_edges = []
-        for k, g in groupby(enumerate(above_crit), lambda (i, x): i - x):
+        for k, g in groupby(enumerate(above_crit), lambda i, x: i - x):
             sequences = map(itemgetter(1), g)
             start_edges.append(sequences[0])
 
